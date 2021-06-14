@@ -2,7 +2,9 @@
 title: "Information gain model for trees"
 author: "Shashank Sule"
 date: "14/06/2021"
-output: markdown::github_document
+output:
+  github_document:
+    pandoc_args: --webtex
 ---
 
 ```{r, echo=FALSE, eval = FALSE}
@@ -35,7 +37,7 @@ In the case where $\mathcal{S}$ is aligned molecular sequence data, we assume th
 The optimal partition is a solution to 
 
 \begin{align}
-  \mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P}) \lable{eq: Main equation}
+  \mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P}) \label{eq: Main equation}
 \end{align}
 
 
