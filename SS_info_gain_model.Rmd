@@ -2,9 +2,7 @@
 title: "Information gain model for trees"
 author: "Shashank Sule"
 date: "14/06/2021"
-output:
-  github_document:
-    pandoc_args: --webtex
+output: md_document
 ---
 
 ```{r, echo=FALSE, eval = FALSE}
@@ -28,16 +26,29 @@ The information gain model of bifurcations/splits/partitions is as follows: Let 
 
 # Algorithm based on $I(\mathcal{P})$
 
-In the case where $\mathcal{S}$ is aligned molecular sequence data, we assume that $X = X_n$ is a random process where $X_i$ takes values in a four-element set (i.e $\{A,C,G,T\}$) and $A_j$, the set of elements in the $j$th sites of $A$ is the set of realizations of $X_n$. We define the mutual information between $X$ and $Y$ to be $\frac{1}{n}\sum_{i=1}^{n}I(X_n, Y_n)$. Here $$I(X_n, Y_n) = \sum_{(x,y) \in (X,Y)}p(x,y)\log_{2}(\frac{p(x,y)}{p(x)p(y)})$$. The strategies for estimating these probabilities are: 
+In the case where $\mathcal{S}$ is aligned molecular sequence data, we assume that $X = X_n$ is a random process where $X_i$ takes values in a four-element set (i.e $\{A,C,G,T\}$) and $A_j$, the set of elements in the $j$th sites of $A$ is the set of realizations of $X_n$. We define the mutual information between $X$ and $Y$ to be $\frac{1}{n}\sum_{i=1}^{n}I(X_n, Y_n)$. Here 
 
-* $p(x,y)  = \frac{\text{# Of pairs (x,y) seen in the data } A_n \times B_n}{|A_n \times B_n|}$. Note that $|A_n \times B_n| = (N - m)m$ where $A_n = m$, and each sequence has length $N$. 
+$$
+I(X_n, Y_n) = \sum_{(x,y) \in (X_n,Y_n)}p(x,y)\log_{2}(\frac{p(x,y)}{p(x)p(y)})
+$$
+
+The strategies for estimating these probabilities are: 
+
+* 
+
+$$
+p(x,y) = \frac{\text{# Of pairs (x,y) seen in the data } A_n \times B_n}{|A_n \times B_n|}
+$$
+
+Note that $|A_n \times B_n| = (N - m)m$ where $A_n = m$, and each sequence has length $N$. 
 
 * $p(x)$ is the frequency of $x$ in the given site in the data $A$ (similarly for $Y$). 
 
 The optimal partition is a solution to 
 
-$$\mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P})$$
-
+$$
+\mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P})
+$$
 
 The algorithm `infopart` for making a tree $T(\mathcal{S})$ with input $\mathcal{S}$ is as follows: 
 
