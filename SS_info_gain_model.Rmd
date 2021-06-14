@@ -2,10 +2,10 @@
 title: "Information gain model for trees"
 author: "Shashank Sule"
 date: "14/06/2021"
-output: html_document
+output: md_document
 ---
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval = FALSE}
 library("adegenet")
 library("ape")
 library("apTreeshape")
