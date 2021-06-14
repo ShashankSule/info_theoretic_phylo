@@ -36,9 +36,7 @@ In the case where $\mathcal{S}$ is aligned molecular sequence data, we assume th
 
 The optimal partition is a solution to 
 
-\begin{align}
-  \mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P}) \label{eq: Main equation}
-\end{align}
+$$\mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P})$$
 
 
 The algorithm `infopart` for making a tree $T(\mathcal{S})$ with input $\mathcal{S}$ is as follows: 
