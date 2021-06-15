@@ -43,6 +43,7 @@ $$
 
 Note that $|A_n \times B_n| = (N - m)m$ where $A_n = m$, and each sequence has length $N$. 
 
+Update: This strategy doesn't work doofus! $p(x,y)$ will always be $p(x)p(y)$ so mutual info will always be zero. 
 * $p(x)$ is the frequency of $x$ in the given site in the data $A$ (similarly for $Y$). 
 
 The optimal partition is a solution to 
@@ -135,6 +136,7 @@ return(I)
 
 ```
 
+
 ```{r}
 infopart <- function(sequence){
 #input: 
@@ -154,16 +156,15 @@ if(length(sequence) == 2){
   
   for(i in 2:(2^length(sequence)-1)){ # Run through all possible partitions
     I <- 0 
-    #if(i != 1 || i != 2^length(sequence)){ # Prevent getting the empty partitions
           # Compute overall mutual information 
-          
-          partition <- as.logical(splitset(length(sequence))[i,])
+    print(paste("computing the ",i,"th partition")) 
+    partition <- as.logical(splitset(length(sequence))[i,])
     
-          for(j in 1:attr(sequence, "nr")){
+        for(j in 1:attr(sequence, "nr")){
             I <- I + mutual_info(partition, sequence, j)
-          }
-    #}
+        }
     
+    print(paste("I =",I))
     
     if(I > max_val){
       max_val <- I 
