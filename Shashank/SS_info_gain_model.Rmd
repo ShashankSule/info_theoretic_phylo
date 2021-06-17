@@ -2,10 +2,12 @@
 title: "Information gain model for trees"
 author: "Shashank Sule"
 date: "14/06/2021"
-output: html_document
+output:
+  github_document:
+    pandoc_args: --webtex
 ---
 
-```{r, echo=FALSE, eval = FALSE}
+```{r, echo=FALSE}
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -21,16 +23,28 @@ source("utilities.R")
 
 # The model
 
-Let's write the simplest possible model. Let $\mathcal{S}$ be a set of OTU's and let $T(\mathcal{S})$ be a binary tree associated with $\mathcal{S}$. If $|\mathcal{S}| = n$ then the number of bifurcations in $T(\mathcal{S})$ is $n-1$ so the task is to figure out the bifurcations of $T(\mathcal{S})$ (or more directly, figure out a set of sensible bifurcations $B_i$ to make a tree with $\mathcal{S}$ as tips or leaves). In APE lingo, these bifurcations are called "splits". 
+Let $\mathcal{S}$ be a set of OTU's and let $T(\mathcal{S})$ be a binary tree associated with $\mathcal{S}$. If $|\mathcal{S}| = n$ then the number of bifurcations in $T(\mathcal{S})$ is $n-1$ so the task is to figure out the bifurcations of $T(\mathcal{S})$ (or more directly, figure out a set of sensible bifurcations $B_i$ to make a tree with $\mathcal{S}$ as tips or leaves). In APE lingo, these bifurcations are called "splits". 
 
-The information gain model of bifurcations/splits/partitions is as follows: Let $\mathcal{S}$ be a set of OTU's and $\mathcal{P} = A \sqcup B$ any partition. Supposing that $A$ are realizations of a random process $X$ and $B$ are realizations of a random process $Y$, then the information of $\mathcal{P}$ is $I(\mathcal{P}) := I(X,Y)$ where $I$ is some meaningful extension of mutual information to a random process. 
+The information gain model of bifurcations/splits/partitions is as follows: Let $\mathcal{S}$ be a set of OTU's and $\mathcal{P} = A \sqcup B$ any partition. Supposing that $A$ are realizations of a random process $X$ and $B$ are realizations of a random process $Y$, then the information of $\mathcal{P}$ is $J(\mathcal{P}) := J(X,Y)$ where $J$ is some meaningful information theoretic function of $X$ and $Y$.
+
+# Some comments about the choice of $J$
+
+Of course, this is a very general model but it's worth spending some time about the choices of $J$. So far we've come up with the following: 
+
+1. Mutual Information
+
+Setting $J(X,Y) = I(X,Y) = H(X_1, \ldots, X_n) - H(X_1, \ldots, X_n \mid Y_1, \ldots, Y_n)$ makes the most sense but this comes with a computational intractability. Assume, for simplicity, that $n=1$. Then This is because we have 
 
 # Algorithm based on $I(\mathcal{P})$
 
-In the case where $\mathcal{S}$ is aligned molecular sequence data, we assume that $X = X_n$ is a random process where $X_i$ takes values in a four-element set (i.e $\{A,C,G,T\}$) and $A_j$, the set of elements in the $j$th sites of $A$ is the set of realizations of $X_n$. We define the mutual information between $X$ and $Y$ to be $\frac{1}{n}\sum_{i=1}^{n}I(X_i, Y_i)$. Here 
+In the case where $\mathcal{S}$ is aligned molecular sequence data of length 1 (basically all we have is each species represented through a single nucleotide), we assume that $X$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $A$ is the set of realizations of $X$ (and similarly for a random variable $Y$ whose realisations are represented by $B$). We define the symmetric cross entropy between $X$ and $Y$ to be 
+
+$$H(p,q) + H(q,p)$$ 
+
+where $X \sim p$ and $Y \sim q$. Note that
 
 $$
-I(X_n, Y_n) = \sum_{(x,y) \in (X_n,Y_n)}p(x,y)\log_{2}(\frac{p(x,y)}{p(x)p(y)})
+H(p,q) = -\sum_{x \in X}p(x)\log_2(q(x))
 $$
 
 The strategies for estimating these probabilities are: 
@@ -45,6 +59,12 @@ Note that $|A_n \times B_n| = (N - m)m$ where $A_n = m$, and each sequence has l
 
 Update: This strategy doesn't work doofus! $p(x,y)$ will always be $p(x)p(y)$ so mutual info will always be zero. 
 * $p(x)$ is the frequency of $x$ in the given site in the data $A$ (similarly for $Y$). 
+
+Update: Compute along the following lines: $I(x_1,x_2) = H(x_0) - H(x_1)- H(x_2)$.
+
+Update: ^That's not really mutual information, it's the difference between $H(x_\eta)$ and $H(x_1) + H(x_2)$! 
+
+Update: Symmetrized Cross Entropy seems to work! Look at the example in the implementation. 
 
 The optimal partition is a solution to 
 
@@ -67,10 +87,10 @@ t <- rtreeshape(1,9,model = "yule")
 plot(as.phylo(t[[1]]))
 ```
 
-Using `simseq` we'll make sequences of say length 10 representing the tree
+Using `simseq` we'll make sequences of length 1 representing the tree
 
 ```{r}
-seqs <- simSeq(as.phylo(t[[1]]),l=12)
+seqs <- simSeq(as.phylo(t[[1]]),l=1)
 ```
 
 Now let's set up the main body of the algorithm 
@@ -85,6 +105,10 @@ mutual_info <- function(partition, sequence, pos){
 # output:
 # I(partition)
 
+#computing p(x \oplus y)
+  
+p_xy <- base.freq(as.DNAbin(sequence))
+
 A <- sequence[partition,pos]
 B <- sequence[!partition,pos]
 
@@ -98,40 +122,14 @@ p_y <- base.freq(as.DNAbin(B))
 
 # Computing p(x,y)
 
-p_xy <- matrix(nrow = 4, ncol = 4)
-
-prod <- as.data.frame(expand.grid(A,B)) # Stores cartesian products of the A and B data
-
-
-for(i in c(1:4)){
-  for (j in c(1:4)) {
-    counter <- 0  # Counter that stores how many times we hit a given pair (x,y)
-    
-    # Subroutine that does the counting: k runs through all the rows of prod 
-    
-    for (k in 1:nrow(prod)){
-      if(all(prod[k,] == c(i,j))){
-        counter <- counter + 1
-      }
-      
-    }
-    
-    p_xy[i,j] <- counter/nrow(prod)
-  }
-}
-
 I <- 0
 for(i in c(1:4)){
-  for(j in c(1:4)){
-    
-    if(p_x[i]*p_y[j] != 0){
-      I <- I + p_xy[i,j]*log2(p_xy[i,j]/(p_x[i]*p_y[j]))
-    }
-    
+  if(p_xy[i] != 0 && p_x[i] != 0 && p_y[i] != 0){
+    I <- -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i])
   }
 }
 
-return(I)
+return(0.5*I)
 }
 
 ```
@@ -146,18 +144,27 @@ infopart <- function(sequence){
 
 
 # if there are only two sequences return dichotomous tree
-if(length(sequence) == 2){
+if(length(sequence) == 1){
+ tree_string <- names(sequence)[1] 
+} else if(length(sequence) == 2){
   tree_string <- paste("(", names(sequence)[1], ", ", names(sequence)[2], ")", sep = "")
-}else{
+} else{
   
-  # There are more than two sequences so we must find the optimal partition
-  max_val <- 0 
-  max_part <- logical(length = length(sequence)) 
+  # There are more than two sequences so we must find the optimal partition. 
+  # Initialize the data 
+  
+  partition <- as.logical(splitset(length(sequence))[2,])
+  I <- 0   
+  for(j in 1:attr(sequence, "nr")){
+          I <- I + mutual_info(partition, sequence, j)
+  }
+  max_val <- I
+  max_part <- partition
   
   for(i in 2:(2^length(sequence)-1)){ # Run through all possible partitions
     I <- 0 
           # Compute overall mutual information 
-    print(paste("computing the ",i,"th partition")) 
+    #print(paste("computing the ",i,"th partition")) 
     partition <- as.logical(splitset(length(sequence))[i,])
     
         for(j in 1:attr(sequence, "nr")){
@@ -166,13 +173,14 @@ if(length(sequence) == 2){
     
     print(paste("I =",I))
     
-    if(I > max_val){
+    if(I < max_val){
       max_val <- I 
       max_part <- partition
     }
   }
-   left_sequence <- sequence[partition,]
-   right_sequence <- sequence[!partition,]
+   print(paste("The partition is ", max_part))
+   left_sequence <- sequence[max_part,]
+   right_sequence <- sequence[!max_part,]
    left_string <- infopart(left_sequence)
    right_string <- infopart(right_sequence)
    
@@ -181,6 +189,7 @@ if(length(sequence) == 2){
    
 }
 
+  return(tree_string)
 }
 ```
 
