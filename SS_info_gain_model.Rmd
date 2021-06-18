@@ -31,9 +31,13 @@ The information gain model of bifurcations/splits/partitions is as follows: Let 
 
 Of course, this is a very general model but it's worth spending some time about the choices of $J$. So far we've come up with the following: 
 
-1. Mutual Information
+1. Information gain 
 
-Setting $J(X,Y) = I(X,Y) = H(X_1, \ldots, X_n) - H(X_1, \ldots, X_n \mid Y_1, \ldots, Y_n)$ makes the most sense but this comes with a computational intractability. Assume, for simplicity, that $n=1$. Then This is because we have 
+This model is used to make decision trees from given data $\mathcal{S}$ containing data from a set of classes (typically it's a binary set). Let $A \sqcup B = \mathcal{S}$ and $P_A = |A|/|\mathcal{S}|$. Then let $Z \sim X_\eta$ where $\eta = 1$ with probability $P_A$ and $2$ with probability $1 - P_A$. Considering $\mathcal{S}$ as a set of samples from $Z$ we can actually compute $I(Z;\eta) = H(Z) - H(Z \mid \eta) = H(\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)$. This is the corrected version of the formula at the bottom of page 3 in `info_theory_ideas`. Using the notation of $x_i$ from this document, we may also write it as $I(x_0; (x_1, x_2)) = H(x_0) - \alpha H(x_1) - (1-\alpha)H(x_2)$ where $\alpha$ is the proportion of taxa in the partition $x_1$. Here the expression "$(x_1, x_2)$" is to be understood as the _tree_ $(x_1, x_2)$ in Newick and not the joint distribution $(x_1, x_2)$. We'll have to be careful about this notation from now on. But computationally this strategy doesn't give the most sensible tree for the simple case of $n$ sequences of length 1. 
+
+2. Symmetrised cross entropy
+
+
 
 # Algorithm based on $I(\mathcal{P})$
 
@@ -115,21 +119,24 @@ B <- sequence[!partition,pos]
 # Computing p(x)
 
 p_x <- base.freq(as.DNAbin(A))
+p_a <- length(A)/length(sequence)
 
 # Computing p(y)
 
 p_y <- base.freq(as.DNAbin(B))
+p_b <- length(B)/length(sequence)
 
 # Computing p(x,y)
 
 I <- 0
 for(i in c(1:4)){
   if(p_xy[i] != 0 && p_x[i] != 0 && p_y[i] != 0){
-    I <- -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i])
+    #I <- -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i])
+    I <- -p_xy[i]*log2(p_xy[i]) + p_a*p_x[i]*log2(p_x[i]) + p_b*p_y[i]*log2(p_y[i])
   }
 }
 
-return(0.5*I)
+return(I)
 }
 
 ```
@@ -173,7 +180,7 @@ if(length(sequence) == 1){
     
     print(paste("I =",I))
     
-    if(I < max_val){
+    if(I > max_val){
       max_val <- I 
       max_part <- partition
     }
