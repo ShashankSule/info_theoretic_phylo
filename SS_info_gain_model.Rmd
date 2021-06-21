@@ -7,7 +7,7 @@ output:
     pandoc_args: --webtex
 ---
 
-```{r, echo=FALSE}
+```{r, echo=FALSE,include=FALSE}
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -19,6 +19,7 @@ library("phylobase")
 #library("phyloch")
 library("seqinr")
 source("utilities.R")
+library("ggplot2")
 ```
 
 # The model
@@ -37,15 +38,15 @@ This model is used to make decision trees from given data $\mathcal{S}$ containi
 
 2. Symmetrised cross entropy
 
+Let $p$ be the distribution of $x_1$ and $q$ the distribution of $x_2$. Then the cross entropy is $H(p,q) := -\sum_{x}p(x)\log_2 q(x)$. Note that $H(p,q) \neq H(q,p)$ in general so we let $J(X,Y) = J(x_1, x_2) = H(p,q) + H(q,p)$. The cross entropy is a value that compares how far $q$ is from $p$ and in source coding quantifies the minimum expected code length when the underlying probability distribution of the source is misunderstood as $q$ instead of $p$. 
 
-
-# Algorithm based on $I(\mathcal{P})$
+# Algorithm based on Symmetrised cross entropy
 
 In the case where $\mathcal{S}$ is aligned molecular sequence data of length 1 (basically all we have is each species represented through a single nucleotide), we assume that $X$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $A$ is the set of realizations of $X$ (and similarly for a random variable $Y$ whose realisations are represented by $B$). We define the symmetric cross entropy between $X$ and $Y$ to be 
 
-$$H(p,q) + H(q,p)$$ 
+$$J(X,Y) = H(p,q) + H(q,p)$$ 
 
-where $X \sim p$ and $Y \sim q$. Note that
+where $X \sim p$ and $Y \sim q$. 
 
 $$
 H(p,q) = -\sum_{x \in X}p(x)\log_2(q(x))
@@ -94,13 +95,13 @@ plot(as.phylo(t[[1]]))
 Using `simseq` we'll make sequences of length 1 representing the tree
 
 ```{r}
-seqs <- simSeq(as.phylo(t[[1]]),l=1)
+seqs <- simSeq(as.phylo(t[[1]]),l=1, type = "DNA")
 ```
 
 Now let's set up the main body of the algorithm 
 
 ```{r}
-mutual_info <- function(partition, sequence, pos){
+mutual_info <- function(partition, sequence, pos, J = "ce"){
 # inputs:
 # partition -- boolean denoting the partitions
 # sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
@@ -130,10 +131,48 @@ p_b <- length(B)/length(sequence)
 
 I <- 0
 for(i in c(1:4)){
-  if(p_xy[i] != 0 && p_x[i] != 0 && p_y[i] != 0){
-    #I <- -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i])
-    I <- -p_xy[i]*log2(p_xy[i]) + p_a*p_x[i]*log2(p_x[i]) + p_b*p_y[i]*log2(p_y[i])
-  }
+  
+    
+    if(J == "ce"){
+      #cross entropy 
+    if(p_y[i] == 0){
+      y_term = 0
+    } else{
+      y_term = -p_x[i]*log2(p_y[i])
+    }
+      
+      if(p_x[i] == 0){
+        x_term = 0
+      } else {
+        x_term = -p_y[i]*log2(p_x[i])
+      } 
+    I <- I + x_term + y_term
+    }
+    
+    if(J == "ig"){
+      #information gain 
+      
+      if(p_y[i] == 0){
+      y_term = 0
+    } else{
+      y_term = -p_y[i]*log2(p_y[i])
+    }
+      
+      if(p_x[i] == 0){
+        x_term = 0
+      } else {
+        x_term = -p_x[i]*log2(p_x[i])
+      } 
+      
+      if(p_xy[i] == 0){
+        xy_term = 0
+      } else {
+        xy_term = -p_xy[i]*log2(p_xy[i])
+      }
+    I <- I + xy_term - p_a*x_term - p_b*y_term
+    }
+    
+  
 }
 
 return(I)
@@ -143,7 +182,7 @@ return(I)
 
 
 ```{r}
-infopart <- function(sequence){
+infopart <- function(sequence, J = "ce"){
 #input: 
 # sequence -- aligned sequence in DNAbin or phyDat 
 # output: 
@@ -175,17 +214,17 @@ if(length(sequence) == 1){
     partition <- as.logical(splitset(length(sequence))[i,])
     
         for(j in 1:attr(sequence, "nr")){
-            I <- I + mutual_info(partition, sequence, j)
+            I <- I + mutual_info(partition, sequence, j, J)
         }
     
-    print(paste("I =",I))
+    #print(paste("I =",I))
     
-    if(I > max_val){
+    if(I < max_val){
       max_val <- I 
       max_part <- partition
     }
   }
-   print(paste("The partition is ", max_part))
+   #print(paste("The partition is ", max_part))
    left_sequence <- sequence[max_part,]
    right_sequence <- sequence[!max_part,]
    left_string <- infopart(left_sequence)
@@ -200,3 +239,22 @@ if(length(sequence) == 1){
 }
 ```
 
+# Results 
+
+We check the trees produced by information gain and symmetrized cross entropy for the 9 tips with sequence length 1. 
+
+```{r,echo=FALSE}
+IG_tree_string <- paste(infopart(seqs, J="ig"), ";", sep="")
+CE_tree_string <- paste(infopart(seqs, J="ce"),";",sep = "")
+```
+
+
+```{r, echo = FALSE}
+image(as.DNAbin(seqs))
+layout(matrix(c(1,2), 1, 2))
+#image(as.DNAbin(seqs))
+plot(read.tree(text = IG_tree_string))
+plot(read.tree(text = CE_tree_string))
+```
+
+Both algorithms generate "sensible" trees in the sense that no two tips with two different nucleotide end up as terminal neighbours. From a glance at the sequence data we may demand that the most sensible tree must separate tip 6 first since it is the only one with its base. However, this sort of reasoning doesn't take into account that there is nothing fundamental about "a" being different from "c" and so on. So from this perspective, one shouldn't make too much of the time of branching events just yet. The main upshot of these trees (especially the cross-entropy one) is that they get the tree topologies in terms of the affinity of the tips right. The cross-entropy tree fares slightly better than the IG tree in this regard since its first speciation event is $P_1 = ((1,3,5), (2,4,6,7,8,9))$ so it correctly separates the "c" taxa from the rest. Meanwhile, the first speciation event in the IG tree is $Q_1 = ((1), (2,3,4,5,6,7,8,9))$ so it seems that the information gained by $Q_1$ is greater than that by $P_1$ which certainly does not correspond to our intutitions about information gain. 
