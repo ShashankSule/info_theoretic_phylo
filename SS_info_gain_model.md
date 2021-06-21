@@ -3,103 +3,6 @@ Information gain model for trees
 Shashank Sule
 14/06/2021
 
-    ## Warning: package 'adegenet' was built under R version 3.6.2
-
-    ## Loading required package: ade4
-
-    ## Warning: package 'ade4' was built under R version 3.6.2
-
-    ## Registered S3 method overwritten by 'spdep':
-    ##   method   from
-    ##   plot.mst ape
-
-    ## 
-    ##    /// adegenet 2.1.3 is loaded ////////////
-    ## 
-    ##    > overview: '?adegenet'
-    ##    > tutorials/doc/questions: 'adegenetWeb()' 
-    ##    > bug reports/feature requests: adegenetIssues()
-
-    ## Warning: package 'ape' was built under R version 3.6.2
-
-    ## Warning: package 'apTreeshape' was built under R version 3.6.2
-
-    ## Registered S3 method overwritten by 'apTreeshape':
-    ##   method          from
-    ##   is.binary.phylo ape
-
-    ## 
-    ## Attaching package: 'apTreeshape'
-
-    ## The following object is masked from 'package:ape':
-    ## 
-    ##     is.binary.phylo
-
-    ## Warning: package 'BoSSA' was built under R version 3.6.2
-
-    ## Warning: package 'diversitree' was built under R version 3.6.2
-
-    ## 
-    ## Attaching package: 'diversitree'
-
-    ## The following object is masked from 'package:adegenet':
-    ## 
-    ##     get.likelihood
-
-    ## Warning: package 'pegas' was built under R version 3.6.2
-
-    ## Registered S3 method overwritten by 'pegas':
-    ##   method      from
-    ##   print.amova ade4
-
-    ## 
-    ## Attaching package: 'pegas'
-
-    ## The following object is masked from 'package:ape':
-    ## 
-    ##     mst
-
-    ## The following object is masked from 'package:ade4':
-    ## 
-    ##     amova
-
-    ## Warning: package 'phangorn' was built under R version 3.6.2
-
-    ## 
-    ## Attaching package: 'phangorn'
-
-    ## The following object is masked from 'package:pegas':
-    ## 
-    ##     dist.hamming
-
-    ## The following object is masked from 'package:adegenet':
-    ## 
-    ##     AICc
-
-    ## 
-    ## Attaching package: 'phylobase'
-
-    ## The following object is masked from 'package:diversitree':
-    ## 
-    ##     prune
-
-    ## The following object is masked from 'package:apTreeshape':
-    ## 
-    ##     ancestor
-
-    ## The following object is masked from 'package:ape':
-    ## 
-    ##     edges
-
-    ## Warning: package 'seqinr' was built under R version 3.6.2
-
-    ## 
-    ## Attaching package: 'seqinr'
-
-    ## The following objects are masked from 'package:ape':
-    ## 
-    ##     as.alignment, consensus
-
 # The model
 
 Let
@@ -149,19 +52,73 @@ Of course, this is a very general model but it’s worth spending some
 time about the choices of ![J](https://latex.codecogs.com/png.latex?J
 "J"). So far we’ve come up with the following:
 
-1.  Mutual Information
+1.  Information gain
 
-Setting ![J(X,Y) = I(X,Y) = H(X\_1, \\ldots, X\_n) - H(X\_1, \\ldots,
-X\_n \\mid Y\_1, \\ldots,
-Y\_n)](https://latex.codecogs.com/png.latex?J%28X%2CY%29%20%3D%20I%28X%2CY%29%20%3D%20H%28X_1%2C%20%5Cldots%2C%20X_n%29%20-%20H%28X_1%2C%20%5Cldots%2C%20X_n%20%5Cmid%20Y_1%2C%20%5Cldots%2C%20Y_n%29
-"J(X,Y) = I(X,Y) = H(X_1, \\ldots, X_n) - H(X_1, \\ldots, X_n \\mid Y_1, \\ldots, Y_n)")
-makes the most sense but this comes with a computational intractability.
-Assume, for simplicity, that
-![n=1](https://latex.codecogs.com/png.latex?n%3D1 "n=1"). Then This is
-because we
-have
+This model is used to make decision trees from given data
+![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
+"\\mathcal{S}") containing data from a set of classes (typically it’s a
+binary set). Let ![A \\sqcup B =
+\\mathcal{S}](https://latex.codecogs.com/png.latex?A%20%5Csqcup%20B%20%3D%20%5Cmathcal%7BS%7D
+"A \\sqcup B = \\mathcal{S}") and ![P\_A =
+|A|/|\\mathcal{S}|](https://latex.codecogs.com/png.latex?P_A%20%3D%20%7CA%7C%2F%7C%5Cmathcal%7BS%7D%7C
+"P_A = |A|/|\\mathcal{S}|"). Then let ![Z \\sim
+X\_\\eta](https://latex.codecogs.com/png.latex?Z%20%5Csim%20X_%5Ceta
+"Z \\sim X_\\eta") where ![\\eta
+= 1](https://latex.codecogs.com/png.latex?%5Ceta%20%3D%201 "\\eta = 1")
+with probability ![P\_A](https://latex.codecogs.com/png.latex?P_A "P_A")
+and ![2](https://latex.codecogs.com/png.latex?2 "2") with probability
+![1 - P\_A](https://latex.codecogs.com/png.latex?1%20-%20P_A "1 - P_A").
+Considering
+![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
+"\\mathcal{S}") as a set of samples from
+![Z](https://latex.codecogs.com/png.latex?Z "Z") we can actually compute
+![I(Z;\\eta) = H(Z) - H(Z \\mid \\eta) = H(\\mathcal{S}) - P\_A H(A) -
+(1 - P\_{A})
+H(B)](https://latex.codecogs.com/png.latex?I%28Z%3B%5Ceta%29%20%3D%20H%28Z%29%20-%20H%28Z%20%5Cmid%20%5Ceta%29%20%3D%20H%28%5Cmathcal%7BS%7D%29%20-%20P_A%20H%28A%29%20-%20%281%20-%20P_%7BA%7D%29%20H%28B%29
+"I(Z;\\eta) = H(Z) - H(Z \\mid \\eta) = H(\\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)").
+This is the corrected version of the formula at the bottom of page 3 in
+`info_theory_ideas`. Using the notation of
+![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i") from this
+document, we may also write it as ![I(x\_0; (x\_1, x\_2)) = H(x\_0) -
+\\alpha H(x\_1) -
+(1-\\alpha)H(x\_2)](https://latex.codecogs.com/png.latex?I%28x_0%3B%20%28x_1%2C%20x_2%29%29%20%3D%20H%28x_0%29%20-%20%5Calpha%20H%28x_1%29%20-%20%281-%5Calpha%29H%28x_2%29
+"I(x_0; (x_1, x_2)) = H(x_0) - \\alpha H(x_1) - (1-\\alpha)H(x_2)")
+where ![\\alpha](https://latex.codecogs.com/png.latex?%5Calpha
+"\\alpha") is the proportion of taxa in the partition
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1"). Here the
+expression “![(x\_1,
+x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
+"(x_1, x_2)")” is to be understood as the *tree* ![(x\_1,
+x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
+"(x_1, x_2)") in Newick and not the joint distribution ![(x\_1,
+x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
+"(x_1, x_2)"). We’ll have to be careful about this notation from now on.
+But computationally this strategy doesn’t give the most sensible tree
+for the simple case of ![n](https://latex.codecogs.com/png.latex?n "n")
+sequences of length 1.
 
-# Algorithm based on ![I(\\mathcal{P})](https://latex.codecogs.com/png.latex?I%28%5Cmathcal%7BP%7D%29 "I(\\mathcal{P})")
+2.  Symmetrised cross entropy
+
+Let ![p](https://latex.codecogs.com/png.latex?p "p") be the distribution
+of ![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![q](https://latex.codecogs.com/png.latex?q "q") the distribution of
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2"). Then the cross
+entropy is ![H(p,q) := -\\sum\_{x}p(x)\\log\_2
+q(x)](https://latex.codecogs.com/png.latex?H%28p%2Cq%29%20%3A%3D%20-%5Csum_%7Bx%7Dp%28x%29%5Clog_2%20q%28x%29
+"H(p,q) := -\\sum_{x}p(x)\\log_2 q(x)"). Note that ![H(p,q) \\neq
+H(q,p)](https://latex.codecogs.com/png.latex?H%28p%2Cq%29%20%5Cneq%20H%28q%2Cp%29
+"H(p,q) \\neq H(q,p)") in general so we let ![J(X,Y) = J(x\_1, x\_2) =
+H(p,q) +
+H(q,p)](https://latex.codecogs.com/png.latex?J%28X%2CY%29%20%3D%20J%28x_1%2C%20x_2%29%20%3D%20H%28p%2Cq%29%20%2B%20H%28q%2Cp%29
+"J(X,Y) = J(x_1, x_2) = H(p,q) + H(q,p)"). The cross entropy is a value
+that compares how far ![q](https://latex.codecogs.com/png.latex?q "q")
+is from ![p](https://latex.codecogs.com/png.latex?p "p") and in source
+coding quantifies the minimum expected code length when the underlying
+probability distribution of the source is misunderstood as
+![q](https://latex.codecogs.com/png.latex?q "q") instead of
+![p](https://latex.codecogs.com/png.latex?p "p").
+
+# Algorithm based on Symmetrised cross entropy
 
 In the case where
 ![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
@@ -181,14 +138,13 @@ symmetric cross entropy between
 ![Y](https://latex.codecogs.com/png.latex?Y "Y") to be
 
   
-![H(p,q) +
-H(q,p)](https://latex.codecogs.com/png.latex?H%28p%2Cq%29%20%2B%20H%28q%2Cp%29
-"H(p,q) + H(q,p)")  
+![J(X,Y) = H(p,q) +
+H(q,p)](https://latex.codecogs.com/png.latex?J%28X%2CY%29%20%3D%20H%28p%2Cq%29%20%2B%20H%28q%2Cp%29
+"J(X,Y) = H(p,q) + H(q,p)")  
 
 where ![X \\sim p](https://latex.codecogs.com/png.latex?X%20%5Csim%20p
 "X \\sim p") and ![Y \\sim
 q](https://latex.codecogs.com/png.latex?Y%20%5Csim%20q "Y \\sim q").
-Note that
 
   
 ![
@@ -283,13 +239,13 @@ plot(as.phylo(t[[1]]))
 Using `simseq` we’ll make sequences of length 1 representing the tree
 
 ``` r
-seqs <- simSeq(as.phylo(t[[1]]),l=1)
+seqs <- simSeq(as.phylo(t[[1]]),l=1, type = "DNA")
 ```
 
 Now let’s set up the main body of the algorithm
 
 ``` r
-mutual_info <- function(partition, sequence, pos){
+mutual_info <- function(partition, sequence, pos, J = "ce"){
 # inputs:
 # partition -- boolean denoting the partitions
 # sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
@@ -308,26 +264,38 @@ B <- sequence[!partition,pos]
 # Computing p(x)
 
 p_x <- base.freq(as.DNAbin(A))
+p_a <- length(A)/length(sequence)
 
 # Computing p(y)
 
 p_y <- base.freq(as.DNAbin(B))
+p_b <- length(B)/length(sequence)
 
 # Computing p(x,y)
 
 I <- 0
 for(i in c(1:4)){
   if(p_xy[i] != 0 && p_x[i] != 0 && p_y[i] != 0){
-    I <- -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i])
+    
+    if(J == "ce"){
+      #cross entropy 
+    I <- I -p_x[i]*log2(p_y[i]) - p_y[i]*log2(p_x[i]) 
+    }
+    
+    if(J == "ig"){
+      #information gain 
+    #I <- I -p_xy[i]*log2(p_xy[i]) + p_a*p_x[i]*log2(p_x[i]) + p_b*p_y[i]*log2(p_y[i])   
+    }
+    
   }
 }
 
-return(0.5*I)
+return(I)
 }
 ```
 
 ``` r
-infopart <- function(sequence){
+infopart <- function(sequence, J = "ce"){
 #input: 
 # sequence -- aligned sequence in DNAbin or phyDat 
 # output: 
@@ -359,17 +327,17 @@ if(length(sequence) == 1){
     partition <- as.logical(splitset(length(sequence))[i,])
     
         for(j in 1:attr(sequence, "nr")){
-            I <- I + mutual_info(partition, sequence, j)
+            I <- I + mutual_info(partition, sequence, j, J)
         }
     
-    print(paste("I =",I))
+    #print(paste("I =",I))
     
     if(I < max_val){
       max_val <- I 
       max_part <- partition
     }
   }
-   print(paste("The partition is ", max_part))
+   #print(paste("The partition is ", max_part))
    left_sequence <- sequence[max_part,]
    right_sequence <- sequence[!max_part,]
    left_string <- infopart(left_sequence)
@@ -383,3 +351,34 @@ if(length(sequence) == 1){
   return(tree_string)
 }
 ```
+
+# Results
+
+We check the trees produced by information gain and symmetrized cross
+entropy for the 9 tips with sequence length
+1.
+
+![](SS_info_gain_model_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->![](SS_info_gain_model_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+
+Both algorithms generate “sensible” trees in the sense that no two tips
+with two different nucleotide end up as terminal neighbours. From a
+glance at the sequence data we may demand that the most sensible tree
+must separate tip 6 first since it is the only one with its base.
+However, this sort of reasoning doesn’t take into account that there is
+nothing fundamental about “a” being different from “c” and so on. So
+from this perspective, one shouldn’t make too much of the time of
+branching events just yet. The main upshot of these trees (especially
+the cross-entropy one) is that they get the tree topologies in terms of
+the affinity of the tips right. The cross-entropy tree fares slightly
+better than the IG tree in this regard since its first speciation event
+is ![P\_1 = ((1,3,5),
+(2,4,6,7,8,9))](https://latex.codecogs.com/png.latex?P_1%20%3D%20%28%281%2C3%2C5%29%2C%20%282%2C4%2C6%2C7%2C8%2C9%29%29
+"P_1 = ((1,3,5), (2,4,6,7,8,9))") so it correctly separates the “c” taxa
+from the rest. Meanwhile, the first speciation event in the IG tree is
+![Q\_1 = ((1),
+(2,3,4,5,6,7,8,9))](https://latex.codecogs.com/png.latex?Q_1%20%3D%20%28%281%29%2C%20%282%2C3%2C4%2C5%2C6%2C7%2C8%2C9%29%29
+"Q_1 = ((1), (2,3,4,5,6,7,8,9))") so it seems that the information
+gained by ![Q\_1](https://latex.codecogs.com/png.latex?Q_1 "Q_1") is
+greater than that by ![P\_1](https://latex.codecogs.com/png.latex?P_1
+"P_1") which certainly does not correspond to our intutitions about
+information gain.
