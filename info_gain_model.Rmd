@@ -34,47 +34,22 @@ Of course, this is a very general model but it's worth spending some time about 
 
 1. Information gain 
 
-This model is used to make decision trees from given data $\mathcal{S}$ containing data from a set of classes (typically it's a binary set). Let $A \sqcup B = \mathcal{S}$ and $P_A = |A|/|\mathcal{S}|$. Then let $Z \sim X_\eta$ where $\eta = 1$ with probability $P_A$ and $2$ with probability $1 - P_A$. Considering $\mathcal{S}$ as a set of samples from $Z$ we can actually compute $I(Z;\eta) = H(Z) - H(Z \mid \eta) = H(\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)$. This is the corrected version of the formula at the bottom of page 3 in `info_theory_ideas`. Using the notation of $x_i$ from this document, we may also write it as $I(x_0; (x_1, x_2)) = H(x_0) - \alpha H(x_1) - (1-\alpha)H(x_2)$ where $\alpha$ is the proportion of taxa in the partition $x_1$. Here the expression "$(x_1, x_2)$" is to be understood as the _tree_ $(x_1, x_2)$ in Newick and not the joint distribution $(x_1, x_2)$. We'll have to be careful about this notation from now on. But computationally this strategy doesn't give the most sensible tree for the simple case of $n$ sequences of length 1. 
+This model is used to make decision trees from given data $\mathcal{S}$ containing data from a set of classes (typically it's a binary set). Let $A \sqcup B = \mathcal{S}$ and $P_A = |A|/|\mathcal{S}|$. Then let $Z \sim X_\eta$ where $\eta = 1$ with probability $P_A$ and $2$ with probability $1 - P_A$. Considering $\mathcal{S}$ as a set of samples from $Z$ we can actually compute $I(Z;\eta) = H(Z) - H(Z \mid \eta) = H(\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)$. This is the corrected version of the formula at the bottom of page 3 in `info_theory_ideas`. Using the notation of $x_i$ from this document, we may also write it as $I(x_0; (x_1, x_2)) = H(x_0) - \alpha H(x_1) - (1-\alpha)H(x_2)$ where $\alpha$ is the proportion of taxa in the partition $x_1$. Here the expression "$(x_1, x_2)$" is to be understood as the _tree_ $(x_1, x_2)$ in Newick and not the joint distribution $(x_1, x_2)$. We'll have to be careful about this notation from now on. But computationally this strategy gives the most sensible trees for the simple case of $n$ sequences of length 1. 
 
 2. Symmetrised cross entropy
 
 Let $p$ be the distribution of $x_1$ and $q$ the distribution of $x_2$. Then the cross entropy is $H(p,q) := -\sum_{x}p(x)\log_2 q(x)$. Note that $H(p,q) \neq H(q,p)$ in general so we let $J(X,Y) = J(x_1, x_2) = H(p,q) + H(q,p)$. The cross entropy is a value that compares how far $q$ is from $p$ and in source coding quantifies the minimum expected code length when the underlying probability distribution of the source is misunderstood as $q$ instead of $p$. 
 
-# Algorithm based on Symmetrised cross entropy
+# Algorithm based on Information Gain
 
-In the case where $\mathcal{S}$ is aligned molecular sequence data of length 1 (basically all we have is each species represented through a single nucleotide), we assume that $X$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $A$ is the set of realizations of $X$ (and similarly for a random variable $Y$ whose realisations are represented by $B$). We define the symmetric cross entropy between $X$ and $Y$ to be 
+In the case where $\mathcal{S}$ is aligned molecular sequence data of length 1 (basically all we have is each species represented through a single nucleotide), we assume that $X_1$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $A$ is the set of realizations of $X_1$ (and similarly for a random variable $X_2$ whose realisations are represented by $B$). Let $\eta$ represent a Bernoulli random variable taking values $1$ and $2$ with parameter $\alpha = |A|/|\mathcal{S}|$. Then letting $Z = X_\eta$ the mutual between $Z$ and the tree $\eta$ can be estimated as
 
-$$J(X,Y) = H(p,q) + H(q,p)$$ 
-
-where $X \sim p$ and $Y \sim q$. 
-
-$$
-H(p,q) = -\sum_{x \in X}p(x)\log_2(q(x))
-$$
-
-The strategies for estimating these probabilities are: 
-
-* 
-
-$$
-p(x,y) = \frac{\text{# Of pairs (x,y) seen in the data } A_n \times B_n}{|A_n \times B_n|}
-$$
-
-Note that $|A_n \times B_n| = (N - m)m$ where $A_n = m$, and each sequence has length $N$. 
-
-Update: This strategy doesn't work doofus! $p(x,y)$ will always be $p(x)p(y)$ so mutual info will always be zero. 
-* $p(x)$ is the frequency of $x$ in the given site in the data $A$ (similarly for $Y$). 
-
-Update: Compute along the following lines: $I(x_1,x_2) = H(x_0) - H(x_1)- H(x_2)$.
-
-Update: ^That's not really mutual information, it's the difference between $H(x_\eta)$ and $H(x_1) + H(x_2)$! 
-
-Update: Symmetrized Cross Entropy seems to work! Look at the example in the implementation. 
+$$I(Z, \eta) \approx I(\mathcal{S}; (A,B)) = H(\mathcal{S}) - \frac{|A|}{|\mathcal{S}|}H(A) - \frac{|B|}{|\mathcal{S}|}H(B)$$ 
 
 The optimal partition is a solution to 
 
 $$
-\mathcal{P}^* = \text{argmax}_{\mathcal{P}}\,I(\mathcal{P})
+\mathcal{P}^* = \text{argmax}_{(A,B)}\,I(\mathcal{S};(A,B))
 $$
 
 The algorithm `infotree` for making a tree $T(\mathcal{S})$ with input $\mathcal{S}$ is as follows: 
@@ -135,28 +110,28 @@ h_y <- 0
 
 I <- 0
 
-# for(i in c(1:4)){
-#   if(p_xy[i] !=0){
-#     h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
-#   }
-#   if(p_x[i] != 0){
-#     h_x <- h_x -p_x[i]*log2(p_x[i])
-#   }
-#   if(p_y[i] != 0){
-#     h_y <- h_y -p_y[i]*log2(p_y[i])
-#   }
-# }
-# 
-# I <- h_xy - p_a*h_x - p_b*h_y
-
 for(i in c(1:4)){
-  if(p_x[i] !=0 ){
-    I <- I - p_a*p_y[i]*log2(p_x[i])
+  if(p_xy[i] !=0){
+    h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
+  }
+  if(p_x[i] != 0){
+    h_x <- h_x -p_x[i]*log2(p_x[i])
   }
   if(p_y[i] != 0){
-    I <- I - p_b*p_x[i]*log2(p_y[i])
+    h_y <- h_y -p_y[i]*log2(p_y[i])
   }
 }
+
+I <- h_xy - p_a*h_x - p_b*h_y
+
+# for(i in c(1:4)){
+#   if(p_x[i] !=0 ){
+#     I <- I - p_a*p_y[i]*log2(p_x[i])
+#   }
+#   if(p_y[i] != 0){
+#     I <- I - p_b*p_x[i]*log2(p_y[i])
+#   }
+# }
 return(I)
 }
 
@@ -202,7 +177,7 @@ if(length(sequence) == 1){
     
     #print(paste("I =",I))
     
-    if(I < max_val){
+    if(I > max_val){
       max_val <- I 
       max_part <- partition
     }
@@ -222,22 +197,47 @@ if(length(sequence) == 1){
 }
 ```
 
-# Results 
+# Results
+
+## Sequences of length 1 
 
 We check the trees produced by information gain and symmetrized cross entropy for the 9 tips with sequence length 1. 
 
 ```{r,echo=FALSE}
-IG_tree_string <- paste(infopart(seqs, J="ig"), ";", sep="")
-CE_tree_string <- paste(infopart(seqs, J="ce"),";",sep = "")
+IG_tree_string <- paste(infopart(seqs), ";", sep="")
 ```
 
 
 ```{r, echo = FALSE}
 image(as.DNAbin(seqs))
-layout(matrix(c(1,2), 1, 2))
+#layout(matrix(c(1,2), 1, 2))
 #image(as.DNAbin(seqs))
 plot(read.tree(text = IG_tree_string))
-plot(read.tree(text = CE_tree_string))
 ```
 
-Both algorithms generate "sensible" trees in the sense that no two tips with two different nucleotide end up as terminal neighbours. From a glance at the sequence data we may demand that the most sensible tree must separate tip 6 first since it is the only one with its base. However, this sort of reasoning doesn't take into account that there is nothing fundamental about "a" being different from "c" and so on. So from this perspective, one shouldn't make too much of the time of branching events just yet. The main upshot of these trees (especially the cross-entropy one) is that they get the tree topologies in terms of the affinity of the tips right. The cross-entropy tree fares slightly better than the IG tree in this regard since its first speciation event is $P_1 = ((1,3,5), (2,4,6,7,8,9))$ so it correctly separates the "c" taxa from the rest. Meanwhile, the first speciation event in the IG tree is $Q_1 = ((1), (2,3,4,5,6,7,8,9))$ so it seems that the information gained by $Q_1$ is greater than that by $P_1$ which certainly does not correspond to our intutitions about information gain. 
+It's a totally sensible tree as it is able to differentiate species with different nucleotides. Clearly there are three distinct classes: $\{1,3,4,6\}, \{2\},$ and $\{5,8,9\}$. Starting from the leaves, each tip is first sorted into its own class before it is merged with tips from other classes. So this is a sensible dichotomous tree on our data. 
+
+## Sequences of length n 
+
+We assume that the distributions on different sites are independent.
+
+```{r}
+seqs2 <- simSeq(as.phylo(t[[1]]),l=12, type = "DNA")
+```
+
+Let's visualize this sequence first: 
+
+```{r, echo = FALSE}
+image(as.DNAbin(seqs2))
+```
+
+Let's make the IG tree! 
+
+```{r,echo=FALSE}
+IG2_tree_string <- paste(infopart(seqs2), ";", sep="")
+```
+
+```{r, echo = FALSE}
+plot(read.tree(text = IG2_tree_string))
+```
+
