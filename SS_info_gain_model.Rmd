@@ -151,10 +151,10 @@ I <- 0
 
 for(i in c(1:4)){
   if(p_x[i] !=0 ){
-    I <- I - p_y[i]*log2(p_x[i])
+    I <- I - p_a*p_y[i]*log2(p_x[i])
   }
   if(p_y[i] != 0){
-    I <- p_x[i]*log2(p_y[i])
+    I <- I - p_b*p_x[i]*log2(p_y[i])
   }
 }
 return(I)
