@@ -1,6 +1,6 @@
 Information gain model for trees
 ================
-Michael Cummings, Lang Song, and Shashank Sule, 
+Michael Cummings, Lang Song, and Shashank Sule
 
 
 # The model
