@@ -241,3 +241,44 @@ IG2_tree_string <- paste(infopart(seqs2), ";", sep="")
 plot(read.tree(text = IG2_tree_string))
 ```
 
+We also have the following toy sequence from Press et al, stored in the file `press_codes.phy`. 
+
+```{r, echo = FALSE}
+# codes <- c("cggttgggagct",
+#            "aggtcgtgaggt",
+#            "tggttggggttt",
+#            "tgggtgcgagtt",
+#            "acgtttgggtga",
+#            "aaggttggggaa",
+#            "gtctttcgggtg",
+#            "cacttgcggggg",
+#            "gcgcggtgcagc",
+#            "aggcggtgcggg",
+#            "gggcggggcggg",
+#            "gggcgctgcggg",
+#            "ggacggaggctg",
+#            "gggtgggagctg",
+#            "aggaggctgatg",
+#            "tggcggatgatg")
+# 
+# write.dna(lapply(codes,s2c),"press_codes.phy")
+```
+
+```{r}
+read.dna("press_codes.phy")
+```
+
+We'll convert it to `phyDat` to start crunching trees: 
+
+```{r}
+trial_DNA <- as.phyDat(read.dna("press_codes.phy"))
+
+trial_DNA
+```
+
+Let's make a tree using `infopart`! The worst case number of iterations is $log(n)2^n$ so that puts us at $2^18$ here so be careful. 
+
+```{r}
+infopart(trial_DNA)
+```
+
