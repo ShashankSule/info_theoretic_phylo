@@ -1,7 +1,7 @@
 Information gain model for trees
 ================
-Shashank Sule
-14/06/2021
+Michael Cummings, Lang Song, and Shashank Sule, 
+
 
 # The model
 
