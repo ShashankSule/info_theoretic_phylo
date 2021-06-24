@@ -276,9 +276,12 @@ trial_DNA <- as.phyDat(read.dna("press_codes.phy"))
 trial_DNA
 ```
 
-Let's make a tree using `infopart`! The worst case number of iterations is $log(n)2^n$ so that puts us at $2^18$ here so be careful. 
+Let's make a tree using `infopart`! Let's actually avoid computing the whole tree for the data since we'd have to make $2^15 - 1$ computations. Instead, let's assume the first (and the most costly) split: ((0:7),(8:15)). Now we'll run `infopart` on these partitions and check the results with Figures 16.6.4-16.6.6 in Press et al. 
 
 ```{r}
-infopart(trial_DNA)
+layout(matrix(c(1,2), 1, 2))
+plot(read.tree(text = paste(infopart(trial_DNA[1:8,]), ";", sep="")))
+plot(read.tree(text = paste(infopart(trial_DNA[9:16,]), ";", sep="")))
 ```
+
 

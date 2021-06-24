@@ -353,3 +353,54 @@ Let’s visualize this sequence first:
 Let’s make the IG tree\!
 
 ![](info_gain_model_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+We also have the following toy sequence from Press et al, stored in the
+file `press_codes.phy`.
+
+``` r
+read.dna("press_codes.phy")
+```
+
+    ## 16 DNA sequences in binary format stored in a matrix.
+    ## 
+    ## All sequences of same length: 12 
+    ## 
+    ## Labels:
+    ## 1
+    ## 2
+    ## 3
+    ## 4
+    ## 5
+    ## 6
+    ## ...
+    ## 
+    ## Base composition:
+    ##     a     c     g     t 
+    ## 0.109 0.135 0.547 0.208 
+    ## (Total: 192 bases)
+
+We’ll convert it to `phyDat` to start crunching trees:
+
+``` r
+trial_DNA <- as.phyDat(read.dna("press_codes.phy"))
+
+trial_DNA
+```
+
+    ## 16 sequences with 12 character and 12 different site patterns.
+    ## The states are a c g t
+
+Let’s make a tree using `infopart`\! Let’s actually avoid computing the
+whole tree for the data since we’d have to make ![2^15
+- 1](https://latex.codecogs.com/png.latex?2%5E15%20-%201 "2^15 - 1")
+computations. Instead, let’s assume the first (and the most costly)
+split: ((0:7),(8:15)). Now we’ll run `infopart` on these partitions and
+check the results with Figures 16.6.4-16.6.6 in Press et al.
+
+``` r
+layout(matrix(c(1,2), 1, 2))
+plot(read.tree(text = paste(infopart(trial_DNA[1:8,]), ";", sep="")))
+plot(read.tree(text = paste(infopart(trial_DNA[9:16,]), ";", sep="")))
+```
+
+![](info_gain_model_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
