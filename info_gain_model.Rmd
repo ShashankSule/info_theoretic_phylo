@@ -115,28 +115,28 @@ h_y <- 0
 
 I <- 0
 
-for(i in c(1:4)){
-  if(p_xy[i] !=0){
-    h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
-  }
-  if(p_x[i] != 0){
-    h_x <- h_x -p_x[i]*log2(p_x[i])
-  }
-  if(p_y[i] != 0){
-    h_y <- h_y -p_y[i]*log2(p_y[i])
-  }
-}
-
-I <- h_xy - p_a*h_x - p_b*h_y
-
 # for(i in c(1:4)){
-#   if(p_x[i] !=0 ){
-#     I <- I - p_b*p_y[i]*log2(p_x[i])
+#   if(p_xy[i] !=0){
+#     h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
+#   }
+#   if(p_x[i] != 0){
+#     h_x <- h_x -p_x[i]*log2(p_x[i])
 #   }
 #   if(p_y[i] != 0){
-#     I <- I - p_a*p_x[i]*log2(p_y[i])
+#     h_y <- h_y -p_y[i]*log2(p_y[i])
 #   }
 # }
+
+# I <- h_xy - p_a*h_x - p_b*h_y
+
+for(i in c(1:4)){
+  if(p_x[i] !=0 ){
+    I <- I - p_b*p_y[i]*log2(p_x[i])
+  }
+  if(p_y[i] != 0){
+    I <- I - p_a*p_x[i]*log2(p_y[i])
+  }
+}
 return(I)
 }
 
@@ -182,7 +182,7 @@ if(length(sequence) == 1){
     
     print(paste("I =",I))
     
-    if(I > max_val){
+    if(I < max_val){
       max_val <- I 
       max_part <- partition
     }
@@ -289,4 +289,16 @@ plot(read.tree(text = paste(infopart(trial_DNA[1:8,]), ";", sep="")))
 plot(read.tree(text = paste(infopart(trial_DNA[9:16,]), ";", sep="")))
 ```
 
-Let's go 
+Let's go for the `coiii.nex` dataset found in Cummings et al. 1995! 
+
+```{r}
+# reading coiii.nex as phyDat: 
+
+raw_data <- ReadCharacters("coiii.nex")
+
+# reading coiii.nex as DNAbin: 
+
+#raw_data <- read.nexus.data("coiii.nex")
+
+```
+
