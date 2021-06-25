@@ -1,0 +1,34 @@
+---
+title: "Information theoretic agglomerative clustering"
+output:
+  github_document:
+    pandoc_args: --webtex
+---
+
+```{r setup, include=FALSE}
+library("adegenet")
+library("ape")
+library("apTreeshape")
+library("BoSSA")
+library("diversitree")
+library("pegas")
+library("phangorn")
+library("phylobase")
+#library("phyloch")
+library("seqinr")
+source("utilities.R")
+library("ggplot2")
+```
+
+# Agglomerative Clustering via Kraskov et al.
+
+```{r}
+agg_clustering <- function(sequence){
+#inputs: 
+# sequence -- aligned dna sequence 
+#ouput:
+# tree in newick format 
+  
+}
+```
+
