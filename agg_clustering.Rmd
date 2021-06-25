@@ -22,13 +22,45 @@ library("ggplot2")
 
 # Agglomerative Clustering via Kraskov et al.
 
+Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the algorithm is as follows: 
+
+1. Maintain 
+
+```{r}
+trials <- coiii_pond[,1:12]
+```
+
+
 ```{r}
 agg_clustering <- function(sequence){
 #inputs: 
-# sequence -- aligned dna sequence 
+# sequence -- aligned dna sequence in phyDat
 #ouput:
 # tree in newick format 
+
+clusters <- names(sequence)
+tree <- ""
+n <- length(sequence)
+
+for (i in c(1:n-2)) {
   
+  #compute minimum pairwise distance via mutual information 
+  min_dist <- alg_info(sequence[clusters[[1]],],sequence[clusters[[2]],])
+  min_pair <- clusters[1:2]
+  
+  for (k in clusters){
+    for (j in clusters){
+      dist <- alg_info(sequence[k,], sequence[j,])
+      
+      if(dist < min_dist){
+        min_dist <- dist
+        min_pair <- c(k,j)
+      }
+    }
+  }
+  
+  # Now we'll set up for the next iteration:
+}
 }
 ```
 
