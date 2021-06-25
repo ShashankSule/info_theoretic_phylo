@@ -22,45 +22,77 @@ library("ggplot2")
 
 # Agglomerative Clustering via Kraskov et al.
 
-Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the algorithm is as follows: 
+Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the algorithm based on Press et al. is as follows: 
 
-1. Maintain 
+1. Maintain an active `char` list `tree` denoting tips of the tree
+2. Parse through `tree` and find the two closest clusters 
+3. Update `tree` by merging the two clusters via tree joining `t1 + t2`. 
+
+Q: How to make this work in a data structure? Hmmm. 
 
 ```{r}
-trials <- coiii_pond[,1:12]
+trials <- as.phyDat(read.nexus.data("coiii.nex"), 
+                    type = "USER", 
+                    levels = c("a","c","g","t","-"),
+                    all = TRUE)
+```
+```{r}
+alg_info <- function(seq1, seq2)
+
 ```
 
 
 ```{r}
-agg_clustering <- function(sequence){
+#agg_clustering <- function(sequence){
 #inputs: 
 # sequence -- aligned dna sequence in phyDat
 #ouput:
 # tree in newick format 
+forests <- lapply(names(sequence),make_newick)
 
-clusters <- names(sequence)
-tree <- ""
-n <- length(sequence)
-
-for (i in c(1:n-2)) {
+if(length(forests) == 1){
   
-  #compute minimum pairwise distance via mutual information 
-  min_dist <- alg_info(sequence[clusters[[1]],],sequence[clusters[[2]],])
-  min_pair <- clusters[1:2]
+  # Just one species 
+  tree_string <- forests[1]
+} else if(length(forests == 2)){
   
-  for (k in clusters){
-    for (j in clusters){
-      dist <- alg_info(sequence[k,], sequence[j,])
-      
-      if(dist < min_dist){
-        min_dist <- dist
-        min_pair <- c(k,j)
+  # Just two species 
+  tree_string <- make_newick(forests)
+} else{
+  
+  #More than two species 
+  
+  end <- length(forests) - 2 
+  for(i in c(1:end)){ #Do this subroutine n-2 times! 
+    
+    max_dist <- alg_info(sequence[read.tree(text = forests[1])$tip.label], 
+                         sequence[read.tree(text = forests[2])$tip.label])
+    max_pair <- c(i,j)
+    
+    #Subroutine for computing the closest two clusters 
+    
+    for(k in c(1:length(forests))){
+      for(j in c( (k+1):length(forests) )){
+        dist <- alg_info(sequence[read.tree(text = forests[k])$tip.label], 
+                         sequence[read.tree(text = forests[j])$tip.label])
+        if(dist > max_dist){
+          max_dist <- dist
+          max_pair <- c(k,j)
+        }
+        
       }
     }
+    
+    #Subroutine for joining the two forests 
+    new_branch <- make_newick(forests[max_pair])
+    forests[- max_pair]
+    forests <- c(forests,new_branch)
   }
   
-  # Now we'll set up for the next iteration:
+  tree_string <- make_newick(forests)
 }
-}
+
+
+#}
 ```
 

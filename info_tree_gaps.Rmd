@@ -68,30 +68,40 @@ mutual_info <- function(partition, sequence, pos) {
   w_x <- length(A) / DIM(sequence)
   w_y <- length(B) / DIM(sequence)
   
-  #I <- 0
+  I <- 0
   entr_xy <- 0
   entr_x <- 0
   entr_y <- 0
   for (i in c(1:5)) {
-    # if(p_x[i] != 0){
-    #   I <- I-w_x*p_y[i]*log2(p_x[i])
-    # }
-    # if(p_y[i] != 0){
-    #   I <- I-w_y*p_x[i]*log2(p_y[i])
-    # }
-    
-    if (p_xy[i] != 0) {
-      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
-    }
-    if (p_x[i] != 0) {
-      entr_x <- entr_x - p_x[i] * log2(p_x[i])
-    }
-    if (p_y[i] != 0) {
-      entr_y <- entr_y - p_y[i] * log2(p_y[i])
-    }
-  }
+     if(p_x[i] != 0){
+       I <- I-w_x*p_y[i]*log2(p_x[i])
+     }
+     if(p_y[i] != 0){
+       I <- I-w_y*p_x[i]*log2(p_y[i])
+     }
+
+     if (p_xy[i] != 0) {
+       entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
+     }
+     if (p_x[i] != 0) {
+       entr_x <- entr_x - p_x[i] * log2(p_x[i])
+     }
+     if (p_y[i] != 0) {
+       entr_y <- entr_y - p_y[i] * log2(p_y[i])
+     }
+   }
   I <- entr_xy - w_x * entr_x - w_y * entr_y
   #print(paste("I =",I))
+    
+  #   for(i in c(1:5)){
+  # if(p_x[i] !=0 ){
+  #   I <- I - w_y*p_y[i]*log2(p_x[i])
+  # }
+  # if(p_y[i] != 0){
+  #   I <- I - w_x*p_x[i]*log2(p_y[i])
+  # }
+}
+
   return(I)
 }
 ```
@@ -153,7 +163,7 @@ infopart <- function(sequence) {
     max_val <- I
     max_part <- partition
     
-    for (i in 3:(2 ^ (length(sequence) - 1))) {
+    for (i in 2:(2 ^ (length(sequence) - 1))) {
       # Run through all possible partitions
       I <- 0
       # Compute overall mutual information
@@ -213,7 +223,7 @@ infotree <- function(sequence) {
     max_val <- I
     max_part <- partition
     
-    for (i in 3:(2 ^ (l - 1))) {
+    for (i in 2:(2 ^ (l - 1))) {
       # Run through all possible partitions
       I <- 0
       # Compute overall mutual information
@@ -226,7 +236,7 @@ infotree <- function(sequence) {
       
       print(paste("I =", I))
       
-      if (I > max_val) {
+      if (I < max_val) {
         max_val <- I
         max_part <- partition
       }

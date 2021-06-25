@@ -16,3 +16,8 @@ splitset <- function(n){
   
   return(sp)
 }
+
+make_newick <- function(tips){
+  # make an n-chotomous tree on an array of strings 
+  return(paste("(", tips, ");", sep = ""))
+}
