@@ -37,7 +37,49 @@ trials <- as.phyDat(read.nexus.data("coiii.nex"),
                     all = TRUE)
 ```
 ```{r}
-alg_info <- function(seq1, seq2)
+alg_info <- function(seqx, seqy){
+  
+  
+  # compute the algorithmic mutual information between two sequences at one site
+  
+  pxy_all <- base.freq(as.DNAbin(c(seqx,seqy)), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+  
+  px_all <- base.freq(as.DNAbin(seqx), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(seqy), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  
+  entr_x <- 0
+  
+  entr_y <- 0 
+  
+  I_alg <- 0
+  for(i in c(1:5)){
+    
+    if(p_xy[i] != 0){
+      entr_xy <- entr_xy + p_xy[i]*log2(p_xy[i])
+    }
+    
+    if(p_x[i] != 0){
+      entr_x <- entr_x - p_x[i]*log2(p_x[i])
+    }
+    
+    if(p_y[i] != 0){
+      entr_y <- entr_y - p_y[i]*log2(p_y[i])
+    }
+    
+    
+  }
+  
+  I_alg <- entr_x + entr_y - entr_xy 
+  
+  return(I_alg)
+}
 
 ```
 

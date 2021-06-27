@@ -73,12 +73,6 @@ mutual_info <- function(partition, sequence, pos) {
   entr_x <- 0
   entr_y <- 0
   for (i in c(1:5)) {
-     if(p_x[i] != 0){
-       I <- I-w_x*p_y[i]*log2(p_x[i])
-     }
-     if(p_y[i] != 0){
-       I <- I-w_y*p_x[i]*log2(p_y[i])
-     }
 
      if (p_xy[i] != 0) {
        entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
