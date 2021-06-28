@@ -23,7 +23,7 @@ library("TreeTools")
 
 # Agglomerative Clustering via Kraskov et al.
 
-Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the algorithm based on Press et al. is as follows: 
+Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the agglomerative algorithm based on Press et al. is as follows: 
 
 1. Maintain an active `char` list `tree` denoting tips of the tree
 2. Parse through `tree` and find the two closest clusters 
@@ -42,6 +42,10 @@ rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
 alg_info <- function(seqx, seqy){
 
 n <- dim(seqx)[2] # stores number of sites 
+
+w_x <- nrow(seqx)/(nrow(seqx) + nrow(seqy))
+w_y <- nrow(seqy)/(nrow(seqx) + nrow(seqy))
+
 I_alg <- 0
 
 for(j in 1:n){
@@ -133,6 +137,7 @@ if(length(forests) == 1){
         y_names <- read.tree(text = paste(forests[j],";",sep=""))$tip.label
         dist <- alg_info(matrix(sequence[x_names,],nrow = length(x_names)), 
                          matrix(sequence[y_names,],nrow = length(y_names)))
+        cat("Current pair: ", x_names, "/", y_names,"; affinity =", dist,"\n")
         if(dist > max_dist){
           max_dist <- dist
           max_pair <- c(k,j)
@@ -141,9 +146,12 @@ if(length(forests) == 1){
       }
     }
     
+    #Just some diagnostics 
+    
+    
     #Subroutine for joining the two forests 
-    new_branch <- make_newick(forests[max_pair])
-    forests[- max_pair]
+    new_branch <- paste("(",forests[max_pair[1]],",",forests[max_pair[2]],")",sep="")
+    forests <- forests[- max_pair]
     forests <- c(forests,new_branch)
   }
   
