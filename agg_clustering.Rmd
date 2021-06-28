@@ -18,6 +18,7 @@ library("phylobase")
 library("seqinr")
 source("utilities.R")
 library("ggplot2")
+library("TreeTools")
 ```
 
 # Agglomerative Clustering via Kraskov et al.
@@ -31,25 +32,31 @@ Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we as
 Q: How to make this work in a data structure? Hmmm. 
 
 ```{r}
-trials <- as.phyDat(read.nexus.data("coiii.nex"), 
-                    type = "USER", 
-                    levels = c("a","c","g","t","-"),
-                    all = TRUE)
+sequence <- ReadCharacters("coiii.nex")
+rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
+
 ```
+
+
 ```{r}
 alg_info <- function(seqx, seqy){
+
+n <- dim(seqx)[2] # stores number of sites 
+I_alg <- 0
+
+for(j in 1:n){
   
   
   # compute the algorithmic mutual information between two sequences at one site
   
-  pxy_all <- base.freq(as.DNAbin(c(seqx,seqy)), all = TRUE)
+  pxy_all <- base.freq(as.DNAbin(c(seqx[,j],seqy[,j])), all = TRUE)
   p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
   
-  px_all <- base.freq(as.DNAbin(seqx), all = TRUE)
+  px_all <- base.freq(as.DNAbin(seqx[,j]), all = TRUE)
   p_x <- px_all[c("a", "c", "g", "t", "-")]
   
   # Computing p(y)
-  py_all <- base.freq(as.DNAbin(seqy), all = TRUE)
+  py_all <- base.freq(as.DNAbin(seqy[,j]), all = TRUE)
   p_y <- py_all[c("a", "c", "g", "t", "-")]
   
   entr_xy <- 0
@@ -58,11 +65,11 @@ alg_info <- function(seqx, seqy){
   
   entr_y <- 0 
   
-  I_alg <- 0
+  I_alg_site <- 0
   for(i in c(1:5)){
     
     if(p_xy[i] != 0){
-      entr_xy <- entr_xy + p_xy[i]*log2(p_xy[i])
+      entr_xy <- entr_xy - p_xy[i]*log2(p_xy[i])
     }
     
     if(p_x[i] != 0){
@@ -76,10 +83,13 @@ alg_info <- function(seqx, seqy){
     
   }
   
-  I_alg <- entr_x + entr_y - entr_xy 
-  
-  return(I_alg)
+  I_alg_site <- entr_x + entr_y - entr_xy 
+  I_alg <- I_alg + I_alg_site
 }
+
+  
+   return(I_alg)
+ }
 
 ```
 
@@ -90,16 +100,16 @@ alg_info <- function(seqx, seqy){
 # sequence -- aligned dna sequence in phyDat
 #ouput:
 # tree in newick format 
-forests <- lapply(names(sequence),make_newick)
+forests <- make_newick(rownames(sequence))
 
 if(length(forests) == 1){
   
   # Just one species 
   tree_string <- forests[1]
-} else if(length(forests == 2)){
+} else if(length(forests) == 2){
   
   # Just two species 
-  tree_string <- make_newick(forests)
+  tree_string <- make_newick(paste(forests[1],",",forests[2],sep = ""))
 } else{
   
   #More than two species 
@@ -107,16 +117,22 @@ if(length(forests) == 1){
   end <- length(forests) - 2 
   for(i in c(1:end)){ #Do this subroutine n-2 times! 
     
-    max_dist <- alg_info(sequence[read.tree(text = forests[1])$tip.label], 
-                         sequence[read.tree(text = forests[2])$tip.label])
-    max_pair <- c(i,j)
+    x_names <- read.tree(text = paste(forests[1],";",sep=""))$tip.label
+    y_names <- read.tree(text = paste(forests[2],";",sep=""))$tip.label
+    
+    max_dist <- alg_info(matrix(sequence[x_names,],nrow = length(x_names)), 
+                         matrix(sequence[y_names,],nrow = length(y_names)))
+    max_pair <- c(1,2)
     
     #Subroutine for computing the closest two clusters 
     
-    for(k in c(1:length(forests))){
-      for(j in c( (k+1):length(forests) )){
-        dist <- alg_info(sequence[read.tree(text = forests[k])$tip.label], 
-                         sequence[read.tree(text = forests[j])$tip.label])
+    for(k in 1:(length(forests)-1) ){
+      for(j in (k+1):length(forests) ){
+        
+        x_names <- read.tree(text = paste(forests[k],";",sep=""))$tip.label
+        y_names <- read.tree(text = paste(forests[j],";",sep=""))$tip.label
+        dist <- alg_info(matrix(sequence[x_names,],nrow = length(x_names)), 
+                         matrix(sequence[y_names,],nrow = length(y_names)))
         if(dist > max_dist){
           max_dist <- dist
           max_pair <- c(k,j)
@@ -131,7 +147,7 @@ if(length(forests) == 1){
     forests <- c(forests,new_branch)
   }
   
-  tree_string <- make_newick(forests)
+  tree_string <- make_newick(paste(forests[1],",",forests[2],sep = ""))
 }
 
 
