@@ -19,6 +19,7 @@ library("seqinr")
 source("utilities.R")
 library("ggplot2")
 library("TreeTools")
+library("phyclust")
 ```
 
 # Agglomerative Clustering via Kraskov et al.
@@ -87,7 +88,7 @@ for(j in 1:n){
     
   }
   
-  I_alg_site <- entr_x + entr_y - entr_xy 
+  I_alg_site <- w_x*entr_x + w_y*entr_y - entr_xy 
   I_alg <- I_alg + I_alg_site
 }
 
@@ -161,4 +162,54 @@ if(length(forests) == 1){
 
 #}
 ```
+
+# Other agglomerative methods 
+
+We'll use the ones shown in APER
+
+1. UPGMA
+
+```{r}
+trials <- as.DNAbin.character(sequence, all = TRUE)
+M <- dist.dna(trials)
+
+plot(upgma(M))
+```
+
+2. Neighbour joining 
+
+```{r}
+mod <- list("JC69")
+```
+
+
+# Testing trees 
+
+Workflow: 
+
+1. Simulate Sequences from simSeq given a tree 
+
+```{r}
+trr <- rtreeshape(1,9,model = "yule")
+
+```
+
+```{r}
+plot(as.phylo(trr[[1]]))
+```
+
+```{r}
+trr_sequence <- simSeq(as.phylo(trr[[1]]),l=1000, type = "DNA")
+```
+
+```{r}
+N <- dist.dna(as.DNAbin(trr_sequence), model = "JC69")
+plot(upgma(N))
+```
+
+
+2. Compute both divisive and agglomerative trees 
+3. Compare the original tree with the simulated trees via different tree distances 
+4. Explore rooting
+
 
