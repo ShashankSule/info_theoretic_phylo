@@ -75,7 +75,7 @@ plot(as.phylo(t[[1]]))
 Using `simseq` we'll make sequences of length 1 representing the tree
 
 ```{r}
-seqs <- simSeq(as.phylo(t[[1]]),l=1, type = "DNA")
+seqs <- simSeq(as.phylo(t[[1]]),l=12, type = "DNA")
 ```
 
 Now let's set up the main body of the algorithm 
