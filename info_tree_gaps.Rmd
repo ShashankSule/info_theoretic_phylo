@@ -94,7 +94,7 @@ mutual_info <- function(partition, sequence, pos) {
   # if(p_y[i] != 0){
   #   I <- I - w_x*p_x[i]*log2(p_y[i])
   # }
-}
+
 
   return(I)
 }
@@ -108,27 +108,6 @@ DIM <- function(A) {
     size <- 1
   }
   return(size)
-}
-```
-
-```{r}
-splitset <- function(n){
-  #inputs:
-  # n -- integer
-  #output: 
-  # splitset -- a 2^n by n matrix of incident vectors of all possible  of a set of size n 
-  
-  if(n==1){
-    sp <- matrix(c(0,1), nrow = 2, byrow = TRUE)
-  } else {
-    sp <- matrix(nrow = 2^n, ncol = n)
-    sp[1:2^(n-1),ncol(sp)] <- rep(0,nrow(sp)/2)
-    sp[(2^(n-1) + 1): nrow(sp),ncol(sp)] <- rep(1,nrow(sp)/2)
-    sp[1:2^(n-1),1:(n-1)] <- splitset(n-1)
-    sp[(2^(n-1) + 1):2^n, 1:(n-1)] <- splitset(n-1)
-  }
-  
-  return(sp)
 }
 ```
 
@@ -230,7 +209,7 @@ infotree <- function(sequence) {
       
       print(paste("I =", I))
       
-      if (I < max_val) {
+      if (I > max_val) {
         max_val <- I
         max_part <- partition
       }
