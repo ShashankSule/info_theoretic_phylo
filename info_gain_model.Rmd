@@ -270,6 +270,10 @@ We also have the following toy sequence from Press et al, stored in the file `pr
 ```
 
 ```{r}
+```
+
+
+```{r}
 read.dna("press_codes.phy")
 ```
 
