@@ -99,7 +99,7 @@ raw_data <- ReadCharacters("coiii.nex")
 #   return(I)
 # }
 
-mutual_info <- function(sequence, partition) {
+info_gain <- function(sequence, partition) {
   # inputs:
   # partition -- boolean denoting the partitions
   # sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
@@ -161,6 +161,43 @@ mutual_info <- function(sequence, partition) {
 ```
 
 ```{r}
+mutual_info <- function(sequence, partition) {
+
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+
+  A <- sequence[partition]
+  B <- sequence[!partition]
+
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  for (i in c(1:5)) {
+
+     if (p_xy[i] != 0) {
+       entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
+     }
+     if (p_x[i] != 0) {
+       entr_x <- entr_x - p_x[i] * log2(p_x[i])
+     }
+     if (p_y[i] != 0) {
+       entr_y <- entr_y - p_y[i] * log2(p_y[i])
+     }
+   }
+  VI <- 2*entr_xy - entr_x - entr_y
+  return(VI)
+}
+```
+
+```{r}
 DIM <- function(A) {
   if (class(A)[1] == "matrix") {
     size <- dim(A)[1]
@@ -174,9 +211,21 @@ DIM <- function(A) {
 ```{r}
 max_info <- function(partition, seq) {
   part_line <- as.logical(partition)
-  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, info_gain, partition = part_line))
       
   print(paste("I =", I))
+  return(I)
+}
+```
+
+```{r}
+max_branch <- function(partition, seq) {
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
+      
+  print(paste("IG =", I))
   return(I)
 }
 ```
@@ -194,7 +243,10 @@ infotree <- function(sequence) {
   if (l == 1) {
     tree_string <- names[1]
   } else if (l == 2) {
-    tree_string <- paste("(", names[1], ", ", names[2], ")", sep = "")
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    branch <- mutual_info(sequence, part_matrix)
+    tree_string <-
+      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
   } else{
     # There are more than two sequences so we must find the optimal partition.
     # Initialize the data
@@ -231,8 +283,10 @@ infotree <- function(sequence) {
     
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     res <- apply(part_matrix, 1, max_info, seq = sequence)
+    inf <- apply(part_matrix, 1, max_branch, seq = sequence)
     max_val <- max(res)
     max_part <- part_matrix[which.max(res), ]
+    branch <- inf[which.max(res)]
     cur_partition <- as.logical(max_part)
     
     print(paste("The partition is ", cur_partition))
@@ -242,9 +296,13 @@ infotree <- function(sequence) {
     right_string <- infotree(right_sequence)
     
     tree_string <-
-      paste("(", left_string, ", ", right_string, ")", sep = "")
+      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
     
   }
   return(tree_string)
 }
+```
+
+```{r}
+plot(read.tree(text = paste(infotree(press_data), ";", sep="")))
 ```
