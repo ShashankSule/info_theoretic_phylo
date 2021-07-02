@@ -887,7 +887,7 @@ void Simulate (char*ctlf)
    FILE *fin, *fseq, *ftree=NULL, *fanc=NULL, *fsiteID=NULL;
    char *paupstart="paupstart",*paupblock="paupblock",*paupend="paupend";
    char line[32000];
-   int lline=32000, i,j,k, ir,n,nr, fixtree=1, sspace=10000, rooted=1;
+   int lline=32000, i,j,k, ir,n,nr, fixtree=0, sspace=10000, rooted=1;
    int h=0,format=0, b[3]={0}, nrate=1, counts[NCATG];
    int *siteorder=NULL;
    char *tmpseq=NULL, *pc;
