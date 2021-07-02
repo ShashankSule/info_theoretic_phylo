@@ -1,0 +1,32 @@
+---
+title: "Computing sequences from trees"
+output:
+  github_document:
+    pandoc_args: --webtex
+---
+
+```{r setup, include=FALSE}
+library("adegenet")
+library("ape")
+library("apTreeshape")
+library("BoSSA")
+library("diversitree")
+library("pegas")
+library("phangorn")
+library("phylobase")
+#library("phyloch")
+library("seqinr")
+source("utilities.R")
+library("ggplot2")
+library("phyclust")
+```
+
+# Generating sequences via `phyclust` and `seqgen` 
+
+# Read via `evolver` in `PAML`
+
+We generated an `mc.nex` file using the parameter `2` in the MC
+```{r}
+
+```
+

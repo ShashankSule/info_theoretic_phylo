@@ -18,7 +18,7 @@ library("phylobase")
 library("seqinr")
 source("utilities.R")
 library("ggplot2")
-library("TreeTools")
+library("TreeDist")
 library("phyclust")
 ```
 
@@ -244,16 +244,49 @@ Workflow:
 1. Simulate Sequences from simSeq given a tree 
 
 ```{r}
+<<<<<<< Updated upstream
 trr <- rtreeshape(1,9,model = "yule")
 t <- rtree(9, rooted = TRUE)
+=======
+# trr <- rtree(9, rooted = TRUE)
+#trr[[1]]$names <- paste("tip", 1:9, sep = "")
+#plot(as.phylo(trr[[1]]))
+trr <- rbdtree(0.1,0, Tmax = 10, eps = 0.0001)
+plot(trr, show.tip.label = TRUE); axisPhylo()
+>>>>>>> Stashed changes
 ```
 
 ```{r}
+<<<<<<< Updated upstream
 plot(as.phylo(trr[[1]]))
+=======
+#trr_sequence <- as.character(simSeq(as.phylo(trr[[1]]),l=1000, type = "DNA"))
+trr_sequence <- as.character(simSeq(trr, l=1000, type = "DNA"))
+#bbxssmmnnmmmmmmmmmmmmmmmmmmmmmmmmm
+
+#trr_sequence <- as.character.DNAbin(read.dna("press_codes.phy"))
+image(as.DNAbin.character(trr_sequence))
+```
+
+3. Make a divisive and agglomerative tree! 
+
+
+```{r}
+div_tree <- infotree(trr_sequence)
 ```
 
 ```{r}
+agg_tree <- agg_clustering(trr_sequence)
+>>>>>>> Stashed changes
+```
+
+```{r}
+<<<<<<< Updated upstream
 trr_sequence <- simSeq(as.phylo(trr[[1]]),l=1000, type = "DNA")
+=======
+plot(trr); axisPhylo()
+title("Original")
+>>>>>>> Stashed changes
 ```
 
 ```{r}
@@ -261,8 +294,14 @@ N <- dist.dna(as.DNAbin(trr_sequence), model = "JC69")
 plot(upgma(N))
 ```
 
+```{r}
+D <- dist.dna(as.DNAbin(trr_sequence))
+```
 
 2. Compute both divisive and agglomerative trees 
+
+
+
 3. Compare the original tree with the simulated trees via different tree distances 
 4. Explore rooting
 
