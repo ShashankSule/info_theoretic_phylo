@@ -142,15 +142,18 @@ agg_clustering <- function(sequence) {
   # sequence -- aligned dna sequence in phyDat
   #ouput:
   # tree in newick format
-  forests <- make_newick(rownames(sequence))
+  tips <- rownames(sequence)
+  forests <- make_newick(tips)
   
   if (length(forests) == 1) {
     # Just one species
     tree_string <- forests[1]
   } else if (length(forests) == 2) {
     # Just two species
-    tree_string <-
-      make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    # tree_string <-
+    #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    branch <- alg_info(sequence, tips[1], tips[2])
+    tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
   } else{
     #More than two species
     
@@ -180,36 +183,31 @@ agg_clustering <- function(sequence) {
           # dist <-
           #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
           dist <- alg_info(sequence, x_names, y_names)
-          cat("Current pair: ",
-              x_names,
-              "/",
-              y_names,
-              "; IG =",
-              dist,
-              "\n")
+          cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
           if (dist < max_dist) {
             max_dist <- dist
             max_pair <- c(k, j)
           }
-          
         }
       }
       
-      #Just some diagnostics
-      
-      
       #Subroutine for joining the two forests
-      new_branch <-
-        paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep =
-                "")
+      new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/2, ",", tips[max_pair[2]], ":", max_dist/2, ")", sep = "")
+      #print(new_tip)
+      tips <- tips[-max_pair]
+      tips <- c(tips, new_tip)
     }
     
-    tree_string <-
-      make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    branch <- alg_info(sequence, x_names, y_names)
+    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
   }
-  
+  #print(tree_string)
+  return(tree_string)
 }
 ```
 
