@@ -1,13 +1,13 @@
  2        * 0: paml format (mc.paml); 1:paup format (mc.nex)
 1234567   * random number seed (odd number)
 
-5 100 1  * <# seqs>  <# nucleotide sites>  <# replicates>
+5 10000 2  * <# seqs>  <# nucleotide sites>  <# replicates>
 
 0.1 0.2 0.3 1.5   * birth rate, death rate, sampling fraction, and mutation rate (tree height)
 
-7          * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV
-10 5 1 2 3 * kappa or rate parameters in model
-0.5  4     * <alpha>  <#categories for discrete gamma>
+3          * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV
+5 * kappa or rate parameters in model
+0  4     * <alpha>  <#categories for discrete gamma>
 
 0.1 0.2 0.3 0.4    * base frequencies
   T   C   A   G
@@ -43,3 +43,16 @@ For TipDate models:
 (((A :0.1, B :0.2) :0.12, C :0.3) :0.123, D :0.4, E :0.5) ;
 (((human: 0.1, chimpanzee: 0.1): 0.1, gorilla: 0.2): 0.1, orangutan: 0.3);
 ((a:0.1, b:0.2):0.12, (c:0.3, d:0.4):0.34, ((e:0.5, f:0.6):0.56, (g:0.7, h:0.8):0.78):0.69);
+
+The default parameters that work well: 
+
+0.1 0.2 0.3 1.5   * birth rate, death rate, sampling fraction, and mutation rate (tree height)
+
+7          * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV
+10 5 1 2 3 * kappa or rate parameters in model
+0  4     * <alpha>  <#categories for discrete gamma>
+
+0.1 0.2 0.3 0.4    * base frequencies
+  T   C   A   G
+
+

@@ -1,5 +1,5 @@
 PRGS =  baseml codeml basemlg mcmctree pamp evolver yn00 chi2 
-CC = cc # cc, gcc, cl
+CC = gcc # cc, gcc, cl
 
 CFLAGS = -O3
 #CFLAGS = -fast
