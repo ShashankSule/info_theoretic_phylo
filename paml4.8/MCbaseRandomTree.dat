@@ -1,7 +1,7 @@
- 2        * 0: paml format (mc.paml); 1:paup format (mc.nex)
+2        * 0: paml format (mc.paml); 1:paup format (mc.nex)
 1234567   * random number seed (odd number)
 
-5 10000 2  * <# seqs>  <# nucleotide sites>  <# replicates>
+5 10000 10  * <# seqs>  <# nucleotide sites>  <# replicates>
 
 0.1 0.2 0.3 1.5   * birth rate, death rate, sampling fraction, and mutation rate (tree height)
 

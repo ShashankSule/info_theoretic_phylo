@@ -77,7 +77,7 @@ We generated an `mc.nex` file using the parameter `2` in the MC. Let's read it, 
 
 ```{r}
 system("paml4.8/bin/evolver 5 paml4.8/MCbaseRandomTree.dat") 
-sequence <- ReadCharacters("paml4.8/mc.nex")
+sequence <- ReadCharacters("mc.nex")
 layout(matrix(c(1,2), 1, 2))
 plot(read.tree(text = "((S4: 1.054292, S2: 1.054292): 0.445708, (S3: 0.849923, (S5: 0.600202, S1: 0.600202): 0.249721): 0.650077);"))
 title("Original Tree")
@@ -85,7 +85,14 @@ plot(upgma(dist.dna(as.DNAbin(sequence))))
 title("UPGMA tree")
 ```
 
+
 ```{r}
-system()
+agg_clustering(sequence)
+```
+
+```{r}
+# diagnostics: 
+
+
 ```
 
