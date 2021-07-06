@@ -35,7 +35,7 @@ DIM <- function(A) {
 
 #----------------------------------Divisive Clustering----------------------------------
 
-mutual_info <- function(partition, sequence, pos) {
+info_gain <- function(sequence, partition) {
   # inputs:
   # partition -- boolean denoting the partitions
   # sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
@@ -44,11 +44,11 @@ mutual_info <- function(partition, sequence, pos) {
   # I(partition)
   #computing p(x \oplus y)
   
-  pxy_all <- base.freq(as.DNAbin(sequence[, pos]), all = TRUE)
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
   p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
   
-  A <- sequence[partition, pos]
-  B <- sequence[!partition, pos]
+  A <- sequence[partition]
+  B <- sequence[!partition]
   
   # Computing p(x)
   px_all <- base.freq(as.DNAbin(A), all = TRUE)
@@ -58,11 +58,9 @@ mutual_info <- function(partition, sequence, pos) {
   py_all <- base.freq(as.DNAbin(B), all = TRUE)
   p_y <- py_all[c("a", "c", "g", "t", "-")]
   
-  # Computing weight
-  #w_x <- length(A)/length(sequence)
-  #w_y <- length(B)/length(sequence)
-  w_x <- length(A) / DIM(sequence)
-  w_y <- length(B) / DIM(sequence)
+  # Computing weights
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
   
   I <- 0
   entr_xy <- 0
@@ -81,17 +79,60 @@ mutual_info <- function(partition, sequence, pos) {
     }
   }
   I <- entr_xy - w_x * entr_x - w_y * entr_y
-  #print(paste("I =",I))
   
-  #   for(i in c(1:5)){
-  # if(p_x[i] !=0 ){
-  #   I <- I - w_y*p_y[i]*log2(p_x[i])
-  # }
-  # if(p_y[i] != 0){
-  #   I <- I - w_x*p_x[i]*log2(p_y[i])
-  # }
+  return(I)
+}
+
+mutual_info <- function(sequence, partition) {
   
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
   
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  for (i in c(1:5)) {
+    
+    if (p_xy[i] != 0) {
+      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
+    }
+    if (p_x[i] != 0) {
+      entr_x <- entr_x - p_x[i] * log2(p_x[i])
+    }
+    if (p_y[i] != 0) {
+      entr_y <- entr_y - p_y[i] * log2(p_y[i])
+    }
+  }
+  VI <- 2*entr_xy - entr_x - entr_y
+  return(VI)
+}
+
+max_info <- function(partition, seq) {
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, info_gain, partition = part_line))
+  
+  print(paste("I =", I))
+  return(I)
+}
+
+max_branch <- function(partition, seq) {
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
+  
+  print(paste("IG =", I))
   return(I)
 }
 
@@ -107,104 +148,77 @@ infotree <- function(sequence) {
   if (l == 1) {
     tree_string <- names[1]
   } else if (l == 2) {
-    tree_string <- paste("(", names[1], ", ", names[2], ")", sep = "")
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    branch <- mutual_info(sequence, part_matrix)
+    tree_string <-
+      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
   } else{
     # There are more than two sequences so we must find the optimal partition.
-    # Initialize the data
     
-    partition <- as.logical(splitset(l)[2, ])
-    I <- 0
-    for (j in 1:dim(sequence)[2]) {
-      #print(paste("I =",I))
-      I <- I + mutual_info(partition, sequence, j)
-      
-    }
-    max_val <- I
-    max_part <- partition
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    res <- apply(part_matrix, 1, max_info, seq = sequence)
+    inf <- apply(part_matrix, 1, max_branch, seq = sequence)
+    max_val <- max(res)
+    max_part <- part_matrix[which.max(res), ]
+    branch <- inf[which.max(res)]
+    cur_partition <- as.logical(max_part)
     
-    for (i in 2:(2 ^ (l - 1))) {
-      # Run through all possible partitions
-      I <- 0
-      # Compute overall mutual information
-      #print(paste("computing the ",i,"th partition"))
-      partition <- as.logical(splitset(l)[i, ])
-      
-      for (j in 1:dim(sequence)[2]) {
-        I <- I + mutual_info(partition, sequence, j)
-      }
-      
-      print(paste("I =", I))
-      
-      if (I > max_val) {
-        max_val <- I
-        max_part <- partition
-      }
-    }
-    print(paste("The partition is ", max_part))
-    left_sequence <- sequence[max_part, , drop = FALSE]
-    right_sequence <- sequence[!max_part, , drop = FALSE]
+    print(paste("The partition is ", cur_partition))
+    left_sequence <- sequence[cur_partition, , drop = FALSE]
+    right_sequence <- sequence[!cur_partition, , drop = FALSE]
     left_string <- infotree(left_sequence)
     right_string <- infotree(right_sequence)
     
     tree_string <-
-      paste("(", left_string, ", ", right_string, ")", sep = "")
+      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
     
   }
   return(tree_string)
 }
 
+
 #----------------------------Agglomerative Clustering--------------------------------
 
 
-alg_info <- function(seqx, seqy) {
-  n <- dim(seqx)[2] # stores number of sites
+site_info <- function(seq, name1, name2) {
+  #w_x <- length(seqx) / (length(seqx) + length(seqy))
+  #w_y <- length(seqy) / (length(seqx) + length(seqy))
+  seqx <- seq[name1]
+  seqy <- seq[name2]
   
-  w_x <- nrow(seqx) / (nrow(seqx) + nrow(seqy))
-  w_y <- nrow(seqy) / (nrow(seqx) + nrow(seqy))
+  pxy_all <- base.freq(as.DNAbin(c(seqx, seqy)), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
   
-  I_alg <- 0
+  px_all <- base.freq(as.DNAbin(seqx), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
   
-  for (j in 1:n) {
-    # compute the algorithmic mutual information between two sequences at one site
-    
-    pxy_all <- base.freq(as.DNAbin(c(seqx[, j], seqy[, j])), all = TRUE)
-    p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
-    
-    px_all <- base.freq(as.DNAbin(seqx[, j]), all = TRUE)
-    p_x <- px_all[c("a", "c", "g", "t", "-")]
-    
-    # Computing p(y)
-    py_all <- base.freq(as.DNAbin(seqy[, j]), all = TRUE)
-    p_y <- py_all[c("a", "c", "g", "t", "-")]
-    
-    entr_xy <- 0
-    
-    entr_x <- 0
-    
-    entr_y <- 0
-    
-    I_alg_site <- 0
-    for (i in c(1:5)) {
-      if (p_xy[i] != 0) {
-        entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
-      }
-      
-      if (p_x[i] != 0) {
-        entr_x <- entr_x - p_x[i] * log2(p_x[i])
-      }
-      
-      if (p_y[i] != 0) {
-        entr_y <- entr_y - p_y[i] * log2(p_y[i])
-      }
-      
-      
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(seqy), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  
+  for (i in c(1:5)) {
+    if (p_xy[i] != 0) {
+      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
     }
     
-    I_alg_site <- 2 * entr_xy - entr_x - entr_y
-    I_alg <- I_alg + I_alg_site
+    if (p_x[i] != 0) {
+      entr_x <- entr_x - p_x[i] * log2(p_x[i])
+    }
+    
+    if (p_y[i] != 0) {
+      entr_y <- entr_y - p_y[i] * log2(p_y[i])
+    }
   }
-  
-  
+  I_alg_site <- 2 * entr_xy - entr_x - entr_y
+  return(I_alg_site)
+}
+
+alg_info <- function(seq_matrix, x_names, y_names) {
+  I_alg <- sum(apply(seq_matrix, 2, site_info, name1 = x_names, name2 = y_names))
   return(I_alg)
 }
 
@@ -213,15 +227,18 @@ agg_clustering <- function(sequence) {
   # sequence -- aligned dna sequence in phyDat
   #ouput:
   # tree in newick format
-  forests <- make_newick(rownames(sequence))
+  tips <- rownames(sequence)
+  forests <- make_newick(tips)
   
   if (length(forests) == 1) {
     # Just one species
     tree_string <- forests[1]
   } else if (length(forests) == 2) {
     # Just two species
-    tree_string <-
-      make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    # tree_string <-
+    #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    branch <- alg_info(sequence, tips[1], tips[2])
+    tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
   } else{
     #More than two species
     
@@ -229,14 +246,17 @@ agg_clustering <- function(sequence) {
     for (i in c(1:end)) {
       #Do this subroutine n-2 times!
       
-      x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
-      y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-      # print(x_names)
-      # print(y_names)
+      x_names <-
+        read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+      y_names <-
+        read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+      #print(x_names)
+      #print(y_names)
       
-      max_dist <-
-        alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
-                 matrix(sequence[y_names, ], nrow = length(y_names)))
+      # max_dist <-
+      #   alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
+      #            matrix(sequence[y_names, ], nrow = length(y_names)))
+      max_dist <- alg_info(sequence, x_names, y_names)
       max_pair <- c(1, 2)
       
       #Subroutine for computing the closest two clusters
@@ -245,39 +265,48 @@ agg_clustering <- function(sequence) {
         for (j in (k + 1):length(forests)) {
           x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
           y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
-          dist <-
-            alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
-                     matrix(sequence[y_names, ], nrow = length(y_names)))
-          # cat("Current pair: ",
-          #     x_names,
-          #     "/",
-          #     y_names,
-          #     "; affinity =",
-          #     dist,
-          #     "\n")
+          # dist <-
+          #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
+          dist <- alg_info(sequence, x_names, y_names)
+          cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
           if (dist < max_dist) {
             max_dist <- dist
             max_pair <- c(k, j)
           }
-          
         }
       }
       
-      #Just some diagnostics
-      
+      # dist <- function(x,y){
+      #   x_names <- read.tree(text = paste(x, ";", sep = ""))$tip.label
+      #   y_names <- read.tree(text = paste(y, ";", sep = ""))$tip.label
+      #   return(alg_info(sequence, x_names, y_names))
+      # }
+      # dist_v <- Vectorize(dist)
+      # dist_matrix <- outer(forests, forests, dist_v)
+      # dist_matrix <- map2_dbl(.x = forests, .y = forests, .f = dist)
+      # diag(dist_matrix) <- NA
+      # 
+      # max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
+      # max_dist <- dist_matrix[max_pair]
+      # print(max_pair)
       
       #Subroutine for joining the two forests
-      new_branch <-
-        paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep =
-                "")
+      new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/2, ",", tips[max_pair[2]], ":", max_dist/2, ")", sep = "")
+      #print(new_tip)
+      tips <- tips[-max_pair]
+      tips <- c(tips, new_tip)
     }
     
-    tree_string <-
-      make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    branch <- alg_info(sequence, x_names, y_names)
+    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
   }
-  
+  #print(tree_string)
+  return(tree_string)
 }
 
 #-----------------------------Sequence Generation--------------------------------------

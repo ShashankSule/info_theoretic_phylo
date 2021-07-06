@@ -191,6 +191,20 @@ agg_clustering <- function(sequence) {
         }
       }
       
+      # dist <- function(x,y){
+      #   x_names <- read.tree(text = paste(x, ";", sep = ""))$tip.label
+      #   y_names <- read.tree(text = paste(y, ";", sep = ""))$tip.label
+      #   return(alg_info(sequence, x_names, y_names))
+      # }
+      # dist_v <- Vectorize(dist)
+      # dist_matrix <- outer(forests, forests, dist_v)
+      # dist_matrix <- map2_dbl(.x = forests, .y = forests, .f = dist)
+      # diag(dist_matrix) <- NA
+      # 
+      # max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
+      # max_dist <- dist_matrix[max_pair]
+      # print(max_pair)
+      
       #Subroutine for joining the two forests
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
@@ -212,7 +226,7 @@ agg_clustering <- function(sequence) {
 ```
 
 ```{r}
-plot(read.tree(text = paste(agg_clustering(press_data), ";", sep="")))
+plot(read.tree(text = paste(agg_clustering(raw_data), ";", sep="")))
 ```
 
 # Other agglomerative methods 
