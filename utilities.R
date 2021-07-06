@@ -282,7 +282,7 @@ agg_clustering <- function(sequence) {
 
 #-----------------------------Sequence Generation--------------------------------------
 
-hit_dat <- function(format = 2,
+who_dat <- function(format = 2,
                     seqs = 5,
                     sites = 10000,
                     reps = 1,

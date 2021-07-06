@@ -21,6 +21,7 @@ library("ggplot2")
 library("phyclust")
 library("TreeDist")
 library("TreeTools")
+library("dplyr")
 ```
 
 # Generating sequences via `phyclust` and `seqgen` 
@@ -34,25 +35,52 @@ seqgen(opts = "-mHKY -l40 -q", newick.tree = ret.ms[3])
 ```
 
 
-# Read via `evolver` in `PAML`
+# Reading via `evolver` in `PAML`
+
+We'll generate 10 random sequences with 5 species each sequence corresponding to a randomly generated tree. 
 
 ```{r}
 trees <- list()
 sequences <- list()
 
 for(i in 1:10){
-  hit_dat(sites = 100)
+  who_dat(sites = 100)
   system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
 ```
 
+Let's compute some diagnostics! 
 
 ```{r}
 trials <- c(1:10)
-div_trees <- lapply(sequences, infotree)
-agg_trees <- lapply(sequences, agg_clustering)
+divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
+agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
 
+data <- data.frame(as.character(trees), as.character(divisive), as.character(agglomerative))
+div_distance  <- mapply(RobinsonFoulds,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
+diagnostics <- data.frame(as.character(div_distance), as.character(agg_distance))
+```
+
+```{r}
+
+
+div_mean <- diagnostics$as.character.div_distance. %>% 
+            as.character() %>% 
+            as.numeric() %>% 
+            mean()
+agg_mean <- diagnostics$as.character.agg_distance. %>% 
+            as.character() %>% 
+            as.numeric() %>% 
+            mean()
+
+print(paste("Average distance of divisive trees from original: ", div_mean, sep = ""))
+print(paste("Average distance of agglomerative trees from original: ", agg_mean, sep = ""))
 ```
 
