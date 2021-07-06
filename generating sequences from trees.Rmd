@@ -33,56 +33,24 @@ set.seed(123)
 seqgen(opts = "-mHKY -l40 -q", newick.tree = ret.ms[3])
 ```
 
-```{r}
-#datwriter <- function(samps, options, sites, replicates){
-  #input: samples for ms()
-  #output: a dat file ready to be crunched by the evolver
-samps <- 3;
-options <- "-T -G 0.2"
-sites <- 1000 
-replicates <- 1 
-  format_initialization <- "2          * 0: paml format (mc.paml); 1:paup format (mc.nex)
-  
-                   21234567   * random number seed (odd number)"
-                   
-  samples_sites_replicates <- paste(samps, sites, replicates, "* <# seqs>  <# nucleotide sites>  <# replicates>", sep = " ")
-  
-  length_string <- "
-                    -1         * <tree length, use -1 if tree below has absolute branch lengths>
-                   "
-  ms_tree <- ms(nsam = samps, opts = options)
-  tree_string <- ms_tree[3]
-  model_string <- "
-                    3          * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV
-  
-                    5 * kappa or rate parameters in model
-                    
-                    0 0     * <alpha>  <#categories for discrete gamma>
-                    
-                    1.0  0.0  0.0  0.0    * base frequencies
-                    T        C        A        G"
-                  
-  cat(format_initialization,
-      samples_sites_replicates,
-      length_string,
-      tree_string,
-      model_string, file = "trialstring.dat", sep = "\n", append = FALSE)
-#}
-```
-
 
 # Read via `evolver` in `PAML`
+
+```{r}
+trees <- list()
+sequences <- list()
+
+for(i in 1:10){
+  hit_dat()
+  system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
+  trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
+  sequences[[i]] <- ReadCharacters("mc.nex")
+}
+```
 
 We generated an `mc.nex` file using the parameter `2` in the MC. Let's read it, get the original tree and see what tree we've got via upgma on the sequence. 
 
 ```{r}
-system("paml4.8/bin/evolver 5 paml4.8/MCbaseRandomTree.dat") 
-sequence <- ReadCharacters("mc.nex")
-layout(matrix(c(1,2), 1, 2))
-plot(read.tree(text = "((S4: 1.054292, S2: 1.054292): 0.445708, (S3: 0.849923, (S5: 0.600202, S1: 0.600202): 0.249721): 0.650077);"))
-title("Original Tree")
-plot(upgma(dist.dna(as.DNAbin(sequence))))
-title("UPGMA tree")
 ```
 
 

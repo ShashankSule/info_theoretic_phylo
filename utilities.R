@@ -279,3 +279,60 @@ agg_clustering <- function(sequence) {
   }
   
 }
+
+#-----------------------------Sequence Generation--------------------------------------
+
+hit_dat <- function(format = 2,
+                    seqs = 5,
+                    sites = 10000,
+                    reps = 1,
+                    birth = 0.1,
+                    death = 0.2,
+                    sampling= 0.3,
+                    mutation = 1.5,
+                    model = 3,
+                    parameters = "5",
+                    gamma = "0 4",
+                    equilibrium = "0.1 0.2 0.3 0.4"
+){
+  seed <- 2*sample(1e6:1e7, 1) + 1
+  format_string <- paste(format, 
+                         "        * 0: paml format (mc.paml); 1:paup format (mc.nex)",sep = "")
+  seed_string <- seed   #* random number seed (odd number)
+  
+  seqs_sites_reps <- paste(seqs, sites, reps, "<# seqs>  <# nucleotide sites>  <# replicates>", sep = " ")
+  
+  #"5 10000 1 * <# seqs>  <# nucleotide sites>  <# replicates>"
+  
+  rates_string <- paste(birth, death, sampling, mutation, sep = " ")
+  
+  #"0.1 0.2 0.3 1.5   * birth rate, death rate, sampling fraction, and mutation rate (tree height)"
+  
+  model_string <- model 
+  
+  #"3          * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV"
+  parameter_string <- parameters
+  
+  #"5 * kappa or rate parameters in model"
+  
+  gamma_string <- gamma
+  
+  #"0  4     * <alpha>  <#categories for discrete gamma>"
+  
+  equilibrium_string <- equilibrium 
+  
+  #"0.1 0.2 0.3 0.4    * base frequencies
+  #  T   C   A   G"
+  
+  cat(format_string,
+      seed_string,
+      seqs_sites_reps,
+      rates_string,
+      model_string,
+      parameter_string,
+      gamma_string,
+      equilibrium_string, 
+      file = "paml4.8/MCbaseRTree.dat",
+      sep = "\n\n",
+      append= FALSE)
+}

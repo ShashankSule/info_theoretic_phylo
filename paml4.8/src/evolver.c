@@ -884,7 +884,7 @@ void Simulate (char*ctlf)
    format (0: paml sites; 1: paml patterns; 2: paup nex)
  */
    char *ancf="ancestral.txt", *siteIDf="siterates.txt";
-   FILE *fin, *fseq, *ftree=NULL, *fanc=NULL, *fsiteID=NULL;
+   FILE *fin, *fseq, *fseqtree, *ftree=NULL, *fanc=NULL, *fsiteID=NULL;
    char *paupstart="paupstart",*paupblock="paupblock",*paupend="paupend";
    char line[32000];
    int lline=32000, i,j,k, ir,n,nr, fixtree=0, sspace=10000, rooted=1;
@@ -1119,6 +1119,8 @@ void Simulate (char*ctlf)
    }
 
    fseq = gfopen(seqf[format], "w");
+   fseqtree = gfopen("mctrees.nex", "w");
+
    if(format==2) appendfile(fseq, paupstart);
    
    fanc = (FILE*)gfopen(ancf, "w");
@@ -1139,8 +1141,12 @@ void Simulate (char*ctlf)
    }
 
    for (ir=0; ir<nr; ir++) {
+
+      FPN(F0);
+
       if (!fixtree) {    /* right now tree is fixed */
-         RandomLHistory (rooted, space);
+         
+         RandomLHistory (rooted, space); /* This generates the random tree */
          if (rooted && com.ns<10) j = GetIofLHistory ();
          BranchLengthBD (1, birth, death, sample, mut);
          if(com.ns<20) { 
@@ -1194,10 +1200,11 @@ void Simulate (char*ctlf)
       }
       if(format==2) fprintf(fseq,"\n\n[Replicate # %d]\n", ir+1);
       printSeqs(fseq, NULL, NULL, format); /* printsma not usable as it codes into 0,1,...,60. */
+
       if(format==2 && !fixtree) {
-         fprintf(fseq,"\nbegin tree;\n   tree true_tree = [&U] "); 
-         OutTreeN(fseq,1,1); fputs(";\n",fseq);
-         fprintf(fseq,"end;\n\n");
+         fprintf(fseqtree,"\nbegin trees;\n   tree true_tree = [&R] "); 
+         OutTreeN(fseqtree,1,1); fputs(";\n",fseqtree);
+         fprintf(fseqtree,"end;\n\n");
       }
       if(format==2) appendfile(fseq,paupblock);
 
@@ -1254,7 +1261,7 @@ void Simulate (char*ctlf)
    }   /* for (ir) */
    if(format==2) appendfile(fseq, paupend);
 
-   fclose(fseq);  if(!fixtree) fclose(fanc);  
+   fclose(fseqtree); fclose(fseq);  if(!fixtree) fclose(fanc);  
    if(com.alpha || com.NSsites) fclose(fsiteID);
    for(j=0; j<com.ns*2-1; j++) free(com.z[j]);
    free(space);
