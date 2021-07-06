@@ -24,17 +24,6 @@ library("TreeTools")
 library("dplyr")
 ```
 
-# Generating sequences via `phyclust` and `seqgen` 
-
-```{r}
-set.seed(123)
-ret.ms <- ms(nsam = 5, nreps = 1, opts = "-T")
-tree.anc <- read.tree(text = ret.ms[3])
-set.seed(123)
-seqgen(opts = "-mHKY -l40 -q", newick.tree = ret.ms[3])
-```
-
-
 # Reading via `evolver` in `PAML`
 
 We'll generate 10 random sequences with 5 species each sequence corresponding to a randomly generated tree. 
