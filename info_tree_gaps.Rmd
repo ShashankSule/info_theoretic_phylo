@@ -12,7 +12,14 @@ library("diversitree")
 library("pegas")
 library("phangorn")
 library("phylobase")
+#library("phyloch")
 library("seqinr")
+#source("utilities.R")
+library("ggplot2")
+library("phyclust")
+library("TreeDist")
+library("TreeTools")
+library("dplyr")
 ```
 
 ## R Markdown
@@ -304,5 +311,5 @@ infotree <- function(sequence) {
 ```
 
 ```{r}
-plot(read.tree(text = paste(infotree(press_data), ";", sep="")))
+plot(read.tree(text = treestring))
 ```

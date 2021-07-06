@@ -32,8 +32,12 @@ We'll generate 10 random sequences with 5 species each sequence corresponding to
 trees <- list()
 sequences <- list()
 
-for(i in 1:10){
-  who_dat(sites = 100)
+for(i in 1:100){
+  who_dat(sites = 1000, 
+          model = 6, 
+          parameters = "5 5", 
+          gamma = "0.5 4", 
+          equilibrium = "0.25 0.28 0.34 0.13")
   system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
@@ -46,7 +50,9 @@ Let's compute some diagnostics!
 trials <- c(1:10)
 divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
 agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
+```
 
+```{r}
 data <- data.frame(as.character(trees), as.character(divisive), as.character(agglomerative))
 div_distance  <- mapply(RobinsonFoulds,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
