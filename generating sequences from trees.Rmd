@@ -41,26 +41,18 @@ trees <- list()
 sequences <- list()
 
 for(i in 1:10){
-  hit_dat()
+  hit_dat(sites = 100)
   system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
 ```
 
-We generated an `mc.nex` file using the parameter `2` in the MC. Let's read it, get the original tree and see what tree we've got via upgma on the sequence. 
 
 ```{r}
-```
-
-
-```{r}
-agg_clustering(sequence)
-```
-
-```{r}
-# diagnostics: 
-
+trials <- c(1:10)
+div_trees <- lapply(sequences, infotree)
+agg_trees <- lapply(sequences, agg_clustering)
 
 ```
 

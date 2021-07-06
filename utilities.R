@@ -231,8 +231,8 @@ agg_clustering <- function(sequence) {
       
       x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
       y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-      print(x_names)
-      print(y_names)
+      # print(x_names)
+      # print(y_names)
       
       max_dist <-
         alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
@@ -248,13 +248,13 @@ agg_clustering <- function(sequence) {
           dist <-
             alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
                      matrix(sequence[y_names, ], nrow = length(y_names)))
-          cat("Current pair: ",
-              x_names,
-              "/",
-              y_names,
-              "; affinity =",
-              dist,
-              "\n")
+          # cat("Current pair: ",
+          #     x_names,
+          #     "/",
+          #     y_names,
+          #     "; affinity =",
+          #     dist,
+          #     "\n")
           if (dist < max_dist) {
             max_dist <- dist
             max_pair <- c(k, j)

@@ -1,8 +1,8 @@
 2        * 0: paml format (mc.paml); 1:paup format (mc.nex)
 
-6022903
+8367089
 
-5 10000 1 <# seqs>  <# nucleotide sites>  <# replicates>
+5 100 1 <# seqs>  <# nucleotide sites>  <# replicates>
 
 0.1 0.2 0.3 1.5
 
