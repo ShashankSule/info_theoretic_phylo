@@ -58,7 +58,13 @@ info_gain <- function(sequence, partition) {
   py_all <- base.freq(as.DNAbin(B), all = TRUE)
   p_y <- py_all[c("a", "c", "g", "t", "-")]
   
+#<<<<<<< Updated upstream
   # Computing weights
+#=======
+  # Computing weight
+  #w_x <- length(A)/length(sequence)
+  #w_y <- length(B)/length(sequence)
+#>>>>>>> Stashed changes
   w_x <- length(A) / length(sequence)
   w_y <- length(B) / length(sequence)
   
@@ -123,7 +129,7 @@ max_info <- function(partition, seq) {
   I <- c(0,0)
   I <- sum(apply(seq, 2, info_gain, partition = part_line))
   
-  print(paste("I =", I))
+  #print(paste("I =", I))
   return(I)
 }
 
@@ -132,9 +138,10 @@ max_branch <- function(partition, seq) {
   I <- c(0,0)
   I <- sum(apply(seq, 2, mutual_info, partition = part_line))
   
-  print(paste("IG =", I))
+  #print(paste("IG =", I))
   return(I)
 }
+
 
 infotree <- function(sequence) {
   #input:
@@ -155,6 +162,7 @@ infotree <- function(sequence) {
   } else{
     # There are more than two sequences so we must find the optimal partition.
     
+# <<<<<<< Updated upstream
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     res <- apply(part_matrix, 1, max_info, seq = sequence)
     inf <- apply(part_matrix, 1, max_branch, seq = sequence)
@@ -163,7 +171,47 @@ infotree <- function(sequence) {
     branch <- inf[which.max(res)]
     cur_partition <- as.logical(max_part)
     
-    print(paste("The partition is ", cur_partition))
+# =======
+    # par <- as.logical(splitset(l)[2, ])
+    # # I <- 0
+    # # for (j in 1:dim(sequence)[2]) {
+    # #   #print(paste("I =",I))
+    # #   I <- I + mutual_info(partition, sequence, j)
+    # #   
+    # # }
+    # max_val <- sum(apply(sequence, 2, mutual_info, partition = par))
+    # max_part <- par
+    
+    # for (i in 2:(2 ^ (l - 1))) {
+    #   # Run through all possible partitions
+    #   I <- 0
+    #   # Compute overall mutual information
+    #   #print(paste("computing the ",i,"th partition"))
+    #   par <- as.logical(splitset(l)[i, ])
+    #   
+    #   # for (j in 1:dim(sequence)[2]) {
+    #   #   I <- I + mutual_info(partition, sequence, j)
+    #   # }
+    #   I <- sum(apply(sequence, 2, mutual_info, partition = par))
+    #   
+    #   print(paste("I =", I))
+    #   
+    #   if (I > max_val) {
+    #     max_val <- I
+    #     max_part <- par
+    #   }
+    # }
+    
+    # part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    # res <- apply(part_matrix, 1, max_info, seq = sequence)
+    # inf <- apply(part_matrix, 1, max_branch, seq = sequence)
+    # max_val <- max(res)
+    # max_part <- part_matrix[which.max(res), ]
+    # branch <- inf[which.max(res)]
+    # cur_partition <- as.logical(max_part)
+    
+#>>>>>>> Stashed changes
+    #print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
     right_sequence <- sequence[!cur_partition, , drop = FALSE]
     left_string <- infotree(left_sequence)
