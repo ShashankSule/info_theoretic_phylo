@@ -1,7 +1,7 @@
 Experiments with information theoretic tree generation
 ================
 
-We’ll generate 100 blocks of sequence data for 16 species where each
+We’ll generate 10 blocks of sequence data for 5 species where each
 block corresponds to a tree randomly generated in the TN93 model.
 
 ``` r
