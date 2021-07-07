@@ -19,26 +19,19 @@ library("seqinr")
 source("utilities.R")
 library("ggplot2")
 library("TreeDist")
+library("TreeTools")
 library("phyclust")
 ```
 
-# Agglomerative Clustering via Kraskov et al.
+Let's write the variation of information as $VI(X,Y) = 2H(X,Y) - H(X) + H(Y)$. We then approximate it through its "algorithmic" counterpart: $VI(X,Y) \approx 2H(X \cup Y) - H(X) - H(Y)$ Then the agglomerative algorithm based on Press et al. is as follows: 
 
-Let's write $D(X,Y) = 1 - I(X,Y)/\max{H(X), H(Y)}$ (for the 1 species case we assume the denominator is just 1). Kraskov et al approximate this mutual information through its algorithmic counterpart: $I(X,Y) \approx K(X) + K(Y) - H(XY) = H(x) + H(y) - H(xy)$ where $xy$ represents the concatenated data. Then the agglomerative algorithm based on Press et al. is as follows: 
+1. Maintain an active `char` list `forests` denoting tips of the tree
+2. Parse through `forests` and find the two closest clusters 
+3. Update `forest` by merging the two clusters via tree joining `t1 + t2`. 
 
-1. Maintain an active `char` list `tree` denoting tips of the tree
-2. Parse through `tree` and find the two closest clusters 
-3. Update `tree` by merging the two clusters via tree joining `t1 + t2`. 
+Moreover, when two forests $X$ and $Y$ are joined into $(X,Y)$ the branch length from the node to each tip $X$ and $Y$ is taken to be $1/2 VI(X,Y)$. We write it up as follows: 
 
-Q: How to make this work in a data structure? Hmmm. 
-
-```{r}
-sequence <- ReadCharacters("coiii.nex")
-rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
-
-```
-
-```{r}
+```{r,include = FALSE, eval = FALSE}
 site_info <- function(seq, name1, name2) {
   #w_x <- length(seqx) / (length(seqx) + length(seqy))
   #w_y <- length(seqy) / (length(seqx) + length(seqy))
@@ -78,7 +71,7 @@ site_info <- function(seq, name1, name2) {
 
 ```
 
-```{r}
+```{r,include=FALSE, eval = FALSE}
 alg_info <- function(seq_matrix, x_names, y_names) {
   I_alg <- sum(apply(seq_matrix, 2, site_info, name1 = x_names, name2 = y_names))
   
@@ -136,7 +129,7 @@ alg_info <- function(seq_matrix, x_names, y_names) {
 ```
 
 
-```{r}
+```{r, echo = TRUE, eval=FALSE}
 agg_clustering <- function(sequence) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
@@ -225,8 +218,16 @@ agg_clustering <- function(sequence) {
 }
 ```
 
+Now let's see how it performs on the Co3 dataset from Cummings et al: 
+
+```{r, echo=TRUE}
+sequence <- ReadCharacters("coiii.nex")
+rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
+
+```
+
 ```{r}
-plot(read.tree(text = paste(agg_clustering(raw_data), ";", sep="")))
+plot(read.tree(text = paste(agg_clustering(sequence), ";", sep="")))
 ```
 
 # Other agglomerative methods 
@@ -238,95 +239,15 @@ We'll use the ones shown in APER
 ```{r}
 trials <- as.DNAbin.character(sequence, all = TRUE)
 M <- dist.dna(trials)
+```
 
-plot(upgma(M))
+```{r}
+plot(upgma(M)); axisPhylo()
 ```
 
 2. Neighbour joining 
 
 ```{r}
-mod <- list("JC69")
-```
-
-
-# Testing trees 
-
-Workflow: 
-
-1. Simulate Sequences from simSeq given a tree 
-
-```{r}
-<<<<<<< Updated upstream
-trr <- rtreeshape(1,9,model = "yule")
-t <- rtree(9, rooted = TRUE)
-=======
-# trr <- rtree(9, rooted = TRUE)
-#trr[[1]]$names <- paste("tip", 1:9, sep = "")
-#plot(as.phylo(trr[[1]]))
-trr <- rbdtree(0.1,0, Tmax = 10, eps = 0.0001)
-plot(trr, show.tip.label = TRUE); axisPhylo()
->>>>>>> Stashed changes
-```
-
-```{r}
-<<<<<<< Updated upstream
-plot(as.phylo(trr[[1]]))
-=======
-#trr_sequence <- as.character(simSeq(as.phylo(trr[[1]]),l=1000, type = "DNA"))
-trr_sequence <- as.character(simSeq(trr, l=1000, type = "DNA"))
-#bbxssmmnnmmmmmmmmmmmmmmmmmmmmmmmmm
-
-#trr_sequence <- as.character.DNAbin(read.dna("press_codes.phy"))
-image(as.DNAbin.character(trr_sequence))
-```
-
-3. Make a divisive and agglomerative tree! 
-
-
-```{r}
-div_tree <- infotree(trr_sequence)
-```
-
-```{r}
-agg_tree <- agg_clustering(trr_sequence)
->>>>>>> Stashed changes
-```
-
-```{r}
-<<<<<<< Updated upstream
-trr_sequence <- simSeq(as.phylo(trr[[1]]),l=1000, type = "DNA")
-=======
-plot(trr); axisPhylo()
-title("Original")
->>>>>>> Stashed changes
-```
-
-```{r}
-N <- dist.dna(as.DNAbin(trr_sequence), model = "JC69")
-plot(upgma(N))
-```
-
-```{r}
-D <- dist.dna(as.DNAbin(trr_sequence))
-```
-
-2. Compute both divisive and agglomerative trees 
-
-
-
-3. Compare the original tree with the simulated trees via different tree distances 
-4. Explore rooting
-
-```{r}
-par_tree <- infopart(trr_sequence)
-plot(read.tree(text = paste(infopart(trr_sequence), ";", sep="")))
-```
-```{r}
-input <- as.character(trr_sequence)
-rownames(input) <- c("tip1","tip2","tip3","tip4","tip5","tip6","tip7","tip8","tip9")
-plot(read.tree(text = paste(agg_clustering(input), ";", sep="")))
-```
-```{r}
-TreeDistance()
+plot(nj(M)); axisPhylo()
 ```
 
