@@ -151,12 +151,13 @@ infotree <- function(sequence) {
   # if there are only two sequences return dichotomous tree
   l = DIM(sequence)
   names = row.names(sequence)
+  num_sites = ncol(sequence)
   
   if (l == 1) {
     tree_string <- names[1]
   } else if (l == 2) {
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    branch <- mutual_info(sequence, part_matrix)
+    branch <- mutual_info(sequence, part_matrix)/num_sites
     tree_string <-
       paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
   } else{
@@ -165,10 +166,9 @@ infotree <- function(sequence) {
 # <<<<<<< Updated upstream
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     res <- apply(part_matrix, 1, max_info, seq = sequence)
-    inf <- apply(part_matrix, 1, max_branch, seq = sequence)
     max_val <- max(res)
     max_part <- part_matrix[which.max(res), ]
-    branch <- inf[which.max(res)]
+    branch <- max_branch(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
     
 # =======
@@ -211,7 +211,7 @@ infotree <- function(sequence) {
     # cur_partition <- as.logical(max_part)
     
 #>>>>>>> Stashed changes
-    #print(paste("The partition is ", cur_partition))
+    print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
     right_sequence <- sequence[!cur_partition, , drop = FALSE]
     left_string <- infotree(left_sequence)
@@ -277,6 +277,7 @@ agg_clustering <- function(sequence) {
   # tree in newick format
   tips <- rownames(sequence)
   forests <- make_newick(tips)
+  num_sites = ncol(sequence)
   
   if (length(forests) == 1) {
     # Just one species
@@ -285,7 +286,7 @@ agg_clustering <- function(sequence) {
     # Just two species
     # tree_string <-
     #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
-    branch <- alg_info(sequence, tips[1], tips[2])
+    branch <- alg_info(sequence, tips[1], tips[2])/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
   } else{
     #More than two species
@@ -342,7 +343,7 @@ agg_clustering <- function(sequence) {
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
-      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/2, ",", tips[max_pair[2]], ":", max_dist/2, ")", sep = "")
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
       #print(new_tip)
       tips <- tips[-max_pair]
       tips <- c(tips, new_tip)

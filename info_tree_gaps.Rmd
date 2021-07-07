@@ -221,7 +221,7 @@ max_info <- function(partition, seq) {
   I <- c(0,0)
   I <- sum(apply(seq, 2, info_gain, partition = part_line))
       
-  print(paste("I =", I))
+  #print(paste("I =", I))
   return(I)
 }
 ```
@@ -246,12 +246,13 @@ infotree <- function(sequence) {
   # if there are only two sequences return dichotomous tree
   l = DIM(sequence)
   names = row.names(sequence)
+  num_sites = ncol(sequence)
   
   if (l == 1) {
     tree_string <- names[1]
   } else if (l == 2) {
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    branch <- mutual_info(sequence, part_matrix)
+    branch <- mutual_info(sequence, part_matrix)/num_sites
     tree_string <-
       paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
   } else{
@@ -290,10 +291,9 @@ infotree <- function(sequence) {
     
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     res <- apply(part_matrix, 1, max_info, seq = sequence)
-    inf <- apply(part_matrix, 1, max_branch, seq = sequence)
     max_val <- max(res)
     max_part <- part_matrix[which.max(res), ]
-    branch <- inf[which.max(res)]
+    branch <- max_branch(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
     
     print(paste("The partition is ", cur_partition))
@@ -308,6 +308,10 @@ infotree <- function(sequence) {
   }
   return(tree_string)
 }
+```
+
+```{r}
+plot(read.tree(text = paste(infotree(press_data), ";", sep="")))
 ```
 
 ```{r}

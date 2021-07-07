@@ -137,6 +137,7 @@ agg_clustering <- function(sequence) {
   # tree in newick format
   tips <- rownames(sequence)
   forests <- make_newick(tips)
+  num_sites = ncol(sequence)
   
   if (length(forests) == 1) {
     # Just one species
@@ -145,7 +146,7 @@ agg_clustering <- function(sequence) {
     # Just two species
     # tree_string <-
     #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
-    branch <- alg_info(sequence, tips[1], tips[2])
+    branch <- alg_info(sequence, tips[1], tips[2])/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
   } else{
     #More than two species
@@ -202,7 +203,7 @@ agg_clustering <- function(sequence) {
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
-      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/2, ",", tips[max_pair[2]], ":", max_dist/2, ")", sep = "")
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
       #print(new_tip)
       tips <- tips[-max_pair]
       tips <- c(tips, new_tip)
@@ -210,7 +211,7 @@ agg_clustering <- function(sequence) {
     
     x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
     y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-    branch <- alg_info(sequence, x_names, y_names)
+    branch <- alg_info(sequence, x_names, y_names)/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
   }
   #print(tree_string)
@@ -227,7 +228,7 @@ rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
 ```
 
 ```{r}
-plot(read.tree(text = paste(agg_clustering(sequence), ";", sep="")))
+plot(read.tree(text = paste(agg_clustering(press_data), ";", sep="")))
 ```
 
 # Other agglomerative methods 
