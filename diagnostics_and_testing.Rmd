@@ -91,9 +91,9 @@ nj_mean <-  diagnostics$as.character.nj_distance. %>%
             as.numeric() %>% 
             mean()
 
-print(paste("Average distance of divisive trees from original: ", div_mean, sep = ""))
-print(paste("Average distance of agglomerative trees from original: ", agg_mean, sep = ""))
-print(paste("Average distance of NJ trees from original: ", nj_mean, sep = ""))
+print(paste("Mean distance of divisive trees from original: ", div_mean, sep = ""))
+print(paste("Mean distance of agglomerative trees from original: ", agg_mean, sep = ""))
+print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
 ```
 
 2. Low tolerance ultrametricity: 
@@ -119,5 +119,6 @@ low_metricity[] <- low_metricity %>%
 
 ```{r}
 summary(low_metricity)
+print("Tolerance used: 1e-2")
 ```
 
