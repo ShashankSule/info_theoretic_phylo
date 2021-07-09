@@ -59,9 +59,12 @@ print(finish - start)
 # start <- Sys.time()
 # agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
 # finish <- Sys.time()
-
+agglomerative <- list(100)
 pb = txtProgressBar(min = 0, max = 100, initial = 0) 
-
+for(i in 1:100){
+  agglomerative[[i]] <- invisible(paste(agg_clustering(sequences[[i]]), ";", sep = ""))
+  setTxtProgressBar(pb,i)
+}
 ```
 
 ```{r}
