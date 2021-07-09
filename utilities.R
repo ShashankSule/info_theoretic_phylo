@@ -317,7 +317,7 @@ agg_clustering <- function(sequence) {
           # dist <-
           #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
           dist <- alg_info(sequence, x_names, y_names)
-          cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+          #cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
           if (dist < max_dist) {
             max_dist <- dist
             max_pair <- c(k, j)

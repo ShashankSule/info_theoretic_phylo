@@ -67,10 +67,6 @@ for(i in 1:100){
 }
 ```
 
-```{r}
-print(start - finish)
-```
-
 
 ```{r, echo = TRUE, results= 'hide'}
 nj_trees <- sequences %>%
@@ -121,7 +117,7 @@ print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
 2. Low tolerance ultrametricity: 
 
 ```{r include=FALSE}
-metricity <- data
+metricity <- data[,c(1,2,4)]
 metricity[] <- metricity %>%
                lapply(function(x) is.ultrametric(read.tree(text = as.character(x))))
 
@@ -134,7 +130,7 @@ summary(metricity)
 3. High tolerance ultrametricity: 
 
 ```{r include=FALSE}
-low_metricity <- data
+low_metricity <- data[,c(1,2,4)]
 low_metricity[] <- low_metricity %>%
                    lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-2))
 ```
@@ -142,5 +138,21 @@ low_metricity[] <- low_metricity %>%
 ```{r}
 summary(low_metricity)
 print("Tolerance used: 1e-2")
+```
+
+4. Relative distance between originals: 
+
+```{r}
+rel_distances <- matrix(rep(0,1e4), nrow = 100)
+for(i in 1:99){
+  for(j in (i+1):100)
+ rel_distances[i,j] <- RobinsonFoulds(read.tree(text = trees[[i]]), read.tree(text = trees[[j]]))
+}
+
+```
+
+```{r}
+par(mar = rep(0, 4))
+image(rel_distances, useRaster = TRUE, axes = FALSE)
 ```
 
