@@ -56,9 +56,12 @@ print(finish - start)
 ```
 
 ```{r, echo = TRUE}
-start <- Sys.time()
-agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
-finish <- Sys.time()
+# start <- Sys.time()
+# agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
+# finish <- Sys.time()
+
+pb = txtProgressBar(min = 0, max = 100, initial = 0) 
+
 ```
 
 ```{r}
