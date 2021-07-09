@@ -1,0 +1,140 @@
+---
+title: "Experiments with information theoretic tree generation"
+output:
+  github_document:
+    pandoc_args: --webtex
+---
+
+```{r setup, include=FALSE}
+library("adegenet")
+library("ape")
+library("apTreeshape")
+library("BoSSA")
+library("diversitree")
+library("pegas")
+library("phangorn")
+library("phylobase")
+#library("phyloch")
+library("seqinr")
+source("utilities.R")
+library("ggplot2")
+library("phyclust")
+library("TreeDist")
+library("TreeTools")
+library("dplyr")
+```
+
+We'll generate 100 blocks of sequence data for 16 species where each block corresponds to a tree randomly generated in the TN93 model. 
+
+```{r echo=TRUE, results='hide'}
+trees <- list()
+sequences <- list()
+
+for(i in 1:100){
+  who_dat(seqs = 10,
+          sites = 1000, 
+          model = 6, 
+          parameters = "5 5", 
+          gamma = "0.5 4", 
+          equilibrium = "0.25 0.28 0.34 0.13")
+  system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
+  trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
+  sequences[[i]] <- ReadCharacters("mc.nex")
+}
+```
+
+Let's compute some diagnostics! 
+
+1. Robinson-Foulds distances: 
+
+```{r, echo=TRUE,results='hide'}
+#trials <- c(1:100)
+start <- Sys.time()
+divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
+finish <- Sys.time()
+print(finish - start)
+```
+
+```{r, echo = TRUE}
+start <- Sys.time()
+agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
+finish <- Sys.time()
+```
+
+```{r}
+print(start - finish)
+```
+
+
+```{r, echo = TRUE, results= 'hide'}
+nj_trees <- sequences %>%
+            lapply(as.DNAbin) %>%
+            lapply(dist.dna) %>%
+            lapply(nj) %>%
+            lapply(write.tree)
+```
+
+```{r include=FALSE}
+data <- data.frame(as.character(trees), as.character(divisive), as.character(agglomerative), 
+                   as.character(nj_trees))
+div_distance  <- mapply(RobinsonFoulds,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
+nj_distance <- mapply(RobinsonFoulds,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
+diagnostics <- data.frame(as.character(div_distance), 
+                          as.character(agg_distance),   
+                          as.character(nj_distance))
+```
+
+```{r, echo = FALSE}
+
+
+div_mean <- diagnostics$as.character.div_distance. %>% 
+            as.character() %>% 
+            as.numeric() %>% 
+            mean()
+agg_mean <- diagnostics$as.character.agg_distance. %>% 
+            as.character() %>% 
+            as.numeric() %>% 
+            mean()
+nj_mean <-  diagnostics$as.character.nj_distance. %>% 
+            as.character() %>% 
+            as.numeric() %>% 
+            mean()
+
+print(paste("Mean distance of divisive trees from original: ", div_mean, sep = ""))
+print(paste("Mean distance of agglomerative trees from original: ", agg_mean, sep = ""))
+print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
+```
+
+2. Low tolerance ultrametricity: 
+
+```{r include=FALSE}
+metricity <- data
+metricity[] <- metricity %>%
+               lapply(function(x) is.ultrametric(read.tree(text = as.character(x))))
+
+```
+
+```{r}
+summary(metricity)
+```
+
+3. High tolerance ultrametricity: 
+
+```{r include=FALSE}
+low_metricity <- data
+low_metricity[] <- low_metricity %>%
+                   lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-2))
+```
+
+```{r}
+summary(low_metricity)
+print("Tolerance used: 1e-2")
+```
+
