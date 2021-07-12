@@ -31,7 +31,7 @@ trees <- list()
 sequences <- list()
 
 for(i in 1:100){
-  who_dat(seqs = 16,
+  who_dat(seqs = 10,
           sites = 1000, 
           model = 6, 
           parameters = "5 5", 
@@ -49,8 +49,30 @@ Let's compute some diagnostics!
 
 ```{r, echo=TRUE,results='hide'}
 #trials <- c(1:100)
+start <- Sys.time()
 divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
-agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
+finish <- Sys.time()
+print(finish - start)
+```
+
+```{r, echo = TRUE}
+# start <- Sys.time()
+# agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
+# finish <- Sys.time()
+agglomerative <- list(100)
+pb = txtProgressBar(min = 0, max = 100, initial = 0) 
+for(i in 1:100){
+  agglomerative[[i]] <- invisible(paste(agg_clustering(sequences[[i]]), ";", sep = ""))
+  setTxtProgressBar(pb,i)
+}
+```
+
+```{r}
+print(start - finish)
+```
+
+
+```{r, echo = TRUE, results= 'hide'}
 nj_trees <- sequences %>%
             lapply(as.DNAbin) %>%
             lapply(dist.dna) %>%
