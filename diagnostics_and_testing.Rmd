@@ -16,6 +16,7 @@ library("phangorn")
 library("phylobase")
 #library("phyloch")
 library("seqinr")
+library("readr")
 source("utilities.R")
 library("ggplot2")
 library("phyclust")
@@ -24,19 +25,27 @@ library("TreeTools")
 library("dplyr")
 ```
 
-We'll generate 100 blocks of sequence data for 16 species where each block corresponds to a tree randomly generated in the TN93 model. 
+We'll generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
 
 ```{r echo=TRUE, results='hide'}
-trees <- list()
-sequences <- list()
 
-for(i in 1:100){
-  who_dat(seqs = 10,
-          sites = 1000, 
-          model = 6, 
-          parameters = "5 5", 
-          gamma = "0.5 4", 
-          equilibrium = "0.25 0.28 0.34 0.13")
+n <- 100
+trees <- list(n)
+sequences <- list(n)
+seeds <- list(n)
+for(i in 1:n){
+  
+  #Initialize the .dat file and store the seed
+  seeds[[i]] <- who_dat(seqs = 8,
+                sites = 1000, 
+                model = 6, 
+                parameters = "5 5", 
+                gamma = "0.5 4", 
+                mutation = 3.5,
+                equilibrium = "0.25 0.28 0.34 0.13",
+                spit_seed = TRUE)
+  
+  #Simulate the trees and the sequences
   system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
@@ -50,21 +59,16 @@ Let's compute some diagnostics!
 ```{r, echo=TRUE,results='hide'}
 #trials <- c(1:100)
 start <- Sys.time()
-divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
+divisive <- lapply(sequences, infotree)
 finish <- Sys.time()
-print(finish - start)
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+div_time <- finish - start()
 ```
 
 ```{r, echo = TRUE}
 # start <- Sys.time()
 # agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
 # finish <- Sys.time()
-agglomerative <- list(100)
-pb = txtProgressBar(min = 0, max = 100, initial = 0) 
-for(i in 1:100){
-  agglomerative[[i]] <- invisible(paste(agg_clustering(sequences[[i]]), ";", sep = ""))
-  setTxtProgressBar(pb,i)
-}
 ```
 
 
@@ -152,7 +156,7 @@ for(i in 1:99){
 ```
 
 ```{r}
-par(mar = rep(0, 4))
-image(rel_distances, useRaster = TRUE, axes = FALSE)
+par(mar=c(5.1, 4.1, 4.1, 4.1))
+plot(rel_distances[1:50,1:50])
 ```
 

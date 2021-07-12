@@ -160,10 +160,12 @@ infotree <- function(sequence) {
     branch <- mutual_info(sequence, part_matrix)/num_sites
     tree_string <-
       paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
+    cat("Done!\n")
   } else{
     # There are more than two sequences so we must find the optimal partition.
     
 # <<<<<<< Updated upstream
+    cat("Partitioning...")
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     res <- apply(part_matrix, 1, max_info, seq = sequence)
     max_val <- max(res)
@@ -211,7 +213,7 @@ infotree <- function(sequence) {
     # cur_partition <- as.logical(max_part)
     
 #>>>>>>> Stashed changes
-    print(paste("The partition is ", cur_partition))
+    #print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
     right_sequence <- sequence[!cur_partition, , drop = FALSE]
     left_string <- infotree(left_sequence)
@@ -371,7 +373,8 @@ who_dat <- function(format = 2,
                     model = 3,
                     parameters = "5",
                     gamma = "0 4",
-                    equilibrium = "0.1 0.2 0.3 0.4"
+                    equilibrium = "0.1 0.2 0.3 0.4",
+                    spit_seed  = FALSE
 ){
   seed <- 2*sample(1e6:1e7, 1) + 1
   format_string <- paste(format, 
@@ -413,4 +416,8 @@ who_dat <- function(format = 2,
       file = "paml4.8/MCbaseRTree.dat",
       sep = "\n\n",
       append= FALSE)
+  
+  if(spit_seed){
+    return(seed)
+  }
 }
