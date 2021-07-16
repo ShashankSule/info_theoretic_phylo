@@ -246,3 +246,18 @@ for (i in index){
 }
 ```
 
+```{r}
+plot(read.tree(text = nj_trees[[7]]))
+edgelabels(read.tree(text = nj_trees[[7]])$edge.length, font= 0.5)
+```
+
+```{r}
+plot(read.tree(text = divisive[[7]]))
+edgelabels(signif(read.tree(text = divisive[[7]])$edge.length, digits = 4), font= 0.5)
+```
+
+```{r}
+read.tree(text = divisive[[7]])$edge.length
+read.tree(text = nj_trees[[7]])$edge.length
+```
+
