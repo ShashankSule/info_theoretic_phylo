@@ -18,6 +18,7 @@ library("phylobase")
 library("seqinr")
 library("readr")
 source("utilities.R")
+library("progress")
 library("ggplot2")
 library("phyclust")
 library("TreeDist")
@@ -64,6 +65,22 @@ finish <- Sys.time()
 divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
 div_time <- finish - start()
 ```
+
+```{r}
+agglomerative <- list(100)
+
+pb <- progress_bar$new(
+      format = "  downloading [:bar] :percent eta: :eta",
+      total = 100, clear = FALSE, width= 60)
+
+for(i in 1:100){
+  pb$tick()
+  agglomerative[[i]] <- agg_clustering(sequences[[i]])
+}
+
+
+```
+
 
 ```{r, echo = TRUE}
 # start <- Sys.time()
@@ -158,5 +175,74 @@ for(i in 1:99){
 ```{r}
 par(mar=c(5.1, 4.1, 4.1, 4.1))
 plot(rel_distances[1:50,1:50])
+```
+
+# Reading files from disk without original trees 
+
+```{r}
+
+d_file_names <- paste("/TN93_Jul7/DivisiveTrees/100_16_",1:100,".txt", sep = "")
+a_file_names <- paste("/TN93_Jul7/AgglomerativeTrees/100_16_",1:100,".txt", sep = "")
+s_file_names <- paste("TN93_Jul7/SequenceData/100_16_",1:100,".nex", sep = "")
+divisive <- mclapply(d_file_names, 
+                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
+                                 1, 
+                                 nchar(read_file(paste(getwd(), x, sep = "")))-2))
+agglomerative <- mclapply(a_file_names, 
+                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
+                                 1, 
+                                 nchar(read_file(paste(getwd(), x, sep = "")))-1))
+sequences <- mclapply(s_file_names, 
+                      ReadCharacters)
+nj_trees <- nj_trees <- sequences %>%
+            mclapply(as.DNAbin) %>%
+            mclapply(dist.dna) %>%
+            mclapply(upgma) %>%
+            mclapply(write.tree)
+
+                     
+```
+
+
+Since we don't have the original trees, we'll compare them with neighbour-joining trees. 
+
+```{r}
+data <- data.frame(as.character(divisive), as.character(agglomerative), 
+                   as.character(nj_trees))
+div_distance  <- mapply(RobinsonFoulds,
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
+# nj_distance <- mapply(RobinsonFoulds,
+#        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+#        lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
+diagnostics <- data.frame(as.numeric(div_distance), 
+                          as.numeric(agg_distance))
+```
+
+Now we'll filter those that have zero robinson-foulds distances 
+
+```{r}
+index <- which(diagnostics$as.numeric.div_distance. + diagnostics$as.numeric.agg_distance. == 0)
+```
+
+
+Finally, we'll make a single plot with the branch lengths compared against the neighbour-joining ones: 
+
+```{r}
+# i <- index[1]
+# nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+#     d_lengths <- read.tree(text = divisive[[i]])$edge.length
+#     plot(nj_lengths, d_lengths)
+
+cl <- rainbow(length(index))
+
+for (i in index){
+    nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+    d_lengths <- read.tree(text = divisive[[i]])$edge.length
+    plot(nj_lengths, d_lengths)
+}
 ```
 
