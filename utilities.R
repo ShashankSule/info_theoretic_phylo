@@ -160,7 +160,7 @@ mutual_info <- function(sequence, partition) {
 max_info <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
-  I <- sum(apply(seq, 2, info_gain, partition = part_line))
+  I <- sum(mcapply(seq, 2, info_gain, partition = part_line))
   
   #print(paste("I =", I))
   return(I)
@@ -169,7 +169,7 @@ max_info <- function(partition, seq) {
 max_branch <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
-  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
+  I <- sum(mcapply(seq, 2, mutual_info, partition = part_line))
   
   #print(paste("IG =", I))
   return(I)
