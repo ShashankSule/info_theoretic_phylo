@@ -33,6 +33,39 @@ DIM <- function(A) {
   return(size)
 }
 
+is_additive <- function(tree) {
+  ret <- TRUE
+  pair_distance <- cophenetic.phylo(tree)
+  n <- ncol(pair_distance)
+  
+  #get every subgroup of four
+  for(i in c(1:(n-3))){
+    for(j in c((i+1):(n-2))){
+      for(k in c((j+1):(n-1))){
+        for(l in c((k+1):n)){
+          d_ij <- pair_distance[i,j]
+          d_ik <- pair_distance[i,k]
+          d_il <- pair_distance[i,l]
+          d_jk <- pair_distance[j,k]
+          d_jl <- pair_distance[j,l]
+          d_kl <- pair_distance[k,l]
+          if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){
+            ret <- FALSE
+          }
+          if((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))){
+            ret <- FALSE
+          }
+          if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
+            ret <- FALSE
+          }
+        }
+      }
+    }
+  }
+  return(ret)
+}
+
+
 #----------------------------------Divisive Clustering----------------------------------
 
 info_gain <- function(sequence, partition) {
