@@ -37,31 +37,44 @@ is_additive <- function(tree) {
   ret <- TRUE
   pair_distance <- cophenetic.phylo(tree)
   n <- ncol(pair_distance)
-  
-  #get every subgroup of four
-  for(i in c(1:(n-3))){
-    for(j in c((i+1):(n-2))){
-      for(k in c((j+1):(n-1))){
-        for(l in c((k+1):n)){
-          d_ij <- pair_distance[i,j]
-          d_ik <- pair_distance[i,k]
-          d_il <- pair_distance[i,l]
-          d_jk <- pair_distance[j,k]
-          d_jl <- pair_distance[j,l]
-          d_kl <- pair_distance[k,l]
-          if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){
-            ret <- FALSE
-          }
-          if((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))){
-            ret <- FALSE
-          }
-          if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
-            ret <- FALSE
+  if(n <= 3){ return(TRUE)
+  }
+  else{
+    
+      #get every subgroup of four
+      for(i in c(1:(n-3))){
+        for(j in c((i+1):(n-2))){
+          for(k in c((j+1):(n-1))){
+            for(l in c((k+1):n)){
+              d_ij <- pair_distance[i,j]
+              d_ik <- pair_distance[i,k]
+              d_il <- pair_distance[i,l]
+              d_jk <- pair_distance[j,k]
+              d_jl <- pair_distance[j,l]
+              d_kl <- pair_distance[k,l]
+              
+              catch <- ((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))) &&
+                ((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))) &&
+                ((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl)))
+              print(catch)
+              if(catch){ return(!catch) }
+              # if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){
+              #   ret <- FALSE
+              # }
+              # if((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))){
+              #   ret <- FALSE
+              # }
+              # if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
+              #   ret <- FALSE
+              }
+            }
           }
         }
       }
-    }
+    
+    
   }
+  
   return(ret)
 }
 
@@ -160,7 +173,9 @@ mutual_info <- function(sequence, partition) {
 max_info <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
-  I <- sum(mcapply(seq, 2, info_gain, partition = part_line))
+  site_data <- asplit(seq, 2)
+  #I <- sum(as.numeric(lapply(site_data, info_gain, partition = part_line)))
+  I <- sum(apply(seq, 2, info_gain, partition = part_line))
   
   #print(paste("I =", I))
   return(I)
@@ -169,7 +184,7 @@ max_info <- function(partition, seq) {
 max_branch <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
-  I <- sum(mcapply(seq, 2, mutual_info, partition = part_line))
+  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
   
   #print(paste("IG =", I))
   return(I)
@@ -197,16 +212,18 @@ infotree <- function(sequence) {
   } else{
     # There are more than two sequences so we must find the optimal partition.
     
-# <<<<<<< Updated upstream
     cat("Partitioning...")
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    res <- apply(part_matrix, 1, max_info, seq = sequence)
-    max_val <- max(res)
-    max_part <- part_matrix[which.max(res), ]
+    parts <- asplit(part_matrix,1)
+    res <- mclapply(parts, max_info, seq = sequence)
+    max_val <- max(as.numeric(res))
+    max_part <- part_matrix[which.max(as.numeric(res)), ]
+    #res <- apply(part_matrix, 1, max_info, seq = sequence)
+    #max_val <- max(res)
+    #max_part <- part_matrix[which.max(res), ]
     branch <- max_branch(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
     
-# =======
     # par <- as.logical(splitset(l)[2, ])
     # # I <- 0
     # # for (j in 1:dim(sequence)[2]) {
