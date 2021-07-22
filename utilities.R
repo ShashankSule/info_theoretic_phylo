@@ -69,6 +69,12 @@ is_additive <- function(tree){
               # if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
               #    ret <- FALSE
               # }
+              # 
+              # if(!ret){
+              #   print(paste(i,j,k, l, sep = " "))
+              #   print(four_pt)
+              #   return(four_pt)
+              # }
             }
           }
         }
