@@ -1,0 +1,25 @@
+#NEXUS
+[Data written by write.nexus.data.R, Tue Jul 20 21:26:05 2021]
+BEGIN DATA;
+  DIMENSIONS NTAX=16 NCHAR=12;
+  FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=NO;
+  MATRIX
+    1       cggttgggagct
+    2       aggtcgtgaggt
+    3       tggttggggttt
+    4       tgggtgcgagtt
+    5       acgtttgggtga
+    6       aaggttggggaa
+    7       gtctttcgggtg
+    8       cacttgcggggg
+    9       gcgcggtgcagc
+    10      aggcggtgcggg
+    11      gggcggggcggg
+    12      gggcgctgcggg
+    13      ggacggaggctg
+    14      gggtgggagctg
+    15      aggaggctgatg
+    16      tggcggatgatg
+  ;
+END;
+

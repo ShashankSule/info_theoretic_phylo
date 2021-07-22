@@ -16,7 +16,9 @@ library("phangorn")
 library("phylobase")
 #library("phyloch")
 library("seqinr")
+library("readr")
 source("utilities.R")
+library("progress")
 library("ggplot2")
 library("phyclust")
 library("TreeDist")
@@ -24,24 +26,47 @@ library("TreeTools")
 library("dplyr")
 ```
 
-We'll generate 100 blocks of sequence data for 16 species where each block corresponds to a tree randomly generated in the TN93 model. 
+We'll generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
 
 ```{r echo=TRUE, results='hide'}
-trees <- list()
-sequences <- list()
-
-for(i in 1:100){
-  who_dat(seqs = 10,
-          sites = 1000, 
-          model = 6, 
-          parameters = "5 5", 
-          gamma = "0.5 4", 
-          equilibrium = "0.25 0.28 0.34 0.13")
+setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
+n <- 100
+trees <- list(n)
+sequences <- list(n)
+seeds <- list(n)
+for(i in 1:n){
+  
+  #Initialize the .dat file and store the seed
+  seeds[[i]] <- who_dat(seqs = 16,
+                sites = 1000, 
+                model = 6, 
+                parameters = "5 5", 
+                gamma = "0.5 4", 
+                mutation = 3.5,
+                equilibrium = "0.25 0.28 0.34 0.13",
+                spit_seed = TRUE)
+  
+  #Simulate the trees and the sequences
   system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
 ```
+
+Writing the data to file 
+
+```{r}
+getwd()
+tree_names <- paste(getwd(), "/TN93_Jul21/Trees/tree", 1:100, ".txt", sep = "")
+seed_names <- paste(getwd(), "/TN93_Jul21/Seeds/seed", 1:100, ".txt", sep = "")
+seqs_names <- paste(getwd(), "/TN93_Jul21/Sequences/sequence", 1:100, ".nex", sep = "")
+
+mapply(function(x,y) write(x,file = y), trees, tree_names)
+mapply(function(x,y) write(x, file = y), seeds, seed_names)
+
+mapply(function(x,y) write.nexus.data(x, file = y), sequences, seqs_names)
+```
+
 
 Let's compute some diagnostics! 
 
@@ -50,25 +75,32 @@ Let's compute some diagnostics!
 ```{r, echo=TRUE,results='hide'}
 #trials <- c(1:100)
 start <- Sys.time()
-divisive <- lapply(lapply(sequences, infotree), function(x) paste(x,";", sep = ""))
+divisive <- lapply(sequences, infotree)
 finish <- Sys.time()
-print(finish - start)
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+div_time <- finish - start()
 ```
+
+```{r}
+agglomerative <- list(100)
+
+pb <- progress_bar$new(
+      format = "  downloading [:bar] :percent eta: :eta",
+      total = 100, clear = FALSE, width= 60)
+
+for(i in 1:100){
+  pb$tick()
+  agglomerative[[i]] <- agg_clustering(sequences[[i]])
+}
+
+
+```
+
 
 ```{r, echo = TRUE}
 # start <- Sys.time()
 # agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
 # finish <- Sys.time()
-agglomerative <- list(100)
-pb = txtProgressBar(min = 0, max = 100, initial = 0) 
-for(i in 1:100){
-  agglomerative[[i]] <- invisible(paste(agg_clustering(sequences[[i]]), ";", sep = ""))
-  setTxtProgressBar(pb,i)
-}
-```
-
-```{r}
-print(start - finish)
 ```
 
 
@@ -121,7 +153,7 @@ print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
 2. Low tolerance ultrametricity: 
 
 ```{r include=FALSE}
-metricity <- data
+metricity <- data[,c(1,2,4)]
 metricity[] <- metricity %>%
                lapply(function(x) is.ultrametric(read.tree(text = as.character(x))))
 
@@ -134,7 +166,7 @@ summary(metricity)
 3. High tolerance ultrametricity: 
 
 ```{r include=FALSE}
-low_metricity <- data
+low_metricity <- data[,c(1,2,4)]
 low_metricity[] <- low_metricity %>%
                    lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-2))
 ```
@@ -142,5 +174,105 @@ low_metricity[] <- low_metricity %>%
 ```{r}
 summary(low_metricity)
 print("Tolerance used: 1e-2")
+```
+
+4. Relative distance between originals: 
+
+```{r}
+rel_distances <- matrix(rep(0,1e4), nrow = 100)
+for(i in 1:99){
+  for(j in (i+1):100)
+ rel_distances[i,j] <- RobinsonFoulds(read.tree(text = trees[[i]]), read.tree(text = trees[[j]]))
+}
+
+```
+
+```{r}
+par(mar=c(5.1, 4.1, 4.1, 4.1))
+plot(rel_distances[1:50,1:50])
+```
+
+# Reading files from disk without original trees 
+
+```{r}
+
+d_file_names <- paste("/TN93_Jul7/DivisiveTrees/100_16_",1:100,".txt", sep = "")
+a_file_names <- paste("/TN93_Jul7/AgglomerativeTrees/100_16_",1:100,".txt", sep = "")
+s_file_names <- paste("TN93_Jul7/SequenceData/100_16_",1:100,".nex", sep = "")
+divisive <- mclapply(d_file_names, 
+                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
+                                 1, 
+                                 nchar(read_file(paste(getwd(), x, sep = "")))-2))
+agglomerative <- mclapply(a_file_names, 
+                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
+                                 1, 
+                                 nchar(read_file(paste(getwd(), x, sep = "")))-1))
+sequences <- mclapply(s_file_names, 
+                      ReadCharacters)
+nj_trees <- nj_trees <- sequences %>%
+            mclapply(as.DNAbin) %>%
+            mclapply(dist.dna) %>%
+            mclapply(upgma) %>%
+            mclapply(write.tree)
+
+                     
+```
+
+
+Since we don't have the original trees, we'll compare them with neighbour-joining trees. 
+
+```{r}
+data <- data.frame(as.character(divisive), as.character(agglomerative), 
+                   as.character(nj_trees))
+div_distance  <- mapply(RobinsonFoulds,
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
+# nj_distance <- mapply(RobinsonFoulds,
+#        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+#        lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
+diagnostics <- data.frame(as.numeric(div_distance), 
+                          as.numeric(agg_distance))
+```
+
+Now we'll filter those that have zero robinson-foulds distances 
+
+```{r}
+index <- which(diagnostics$as.numeric.div_distance. + diagnostics$as.numeric.agg_distance. == 0)
+```
+
+
+Finally, we'll make a single plot with the branch lengths compared against the neighbour-joining ones: 
+
+```{r}
+# i <- index[1]
+# nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+#     d_lengths <- read.tree(text = divisive[[i]])$edge.length
+#     plot(nj_lengths, d_lengths)
+
+cl <- rainbow(length(index))
+
+for (i in index){
+    nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+    d_lengths <- read.tree(text = divisive[[i]])$edge.length
+    plot(nj_lengths[order(nj_lengths)], d_lengths[order(nj_lengths)])
+}
+```
+
+```{r}
+plot(read.tree(text = nj_trees[[7]]))
+edgelabels(read.tree(text = nj_trees[[7]])$edge.length, font= 0.5)
+```
+
+```{r}
+plot(read.tree(text = divisive[[7]]))
+edgelabels(signif(read.tree(text = divisive[[7]])$edge.length, digits = 4), font= 0.5)
+```
+
+```{r}
+read.tree(text = divisive[[7]])$edge.length
+read.tree(text = nj_trees[[7]])$edge.length
 ```
 
