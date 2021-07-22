@@ -38,8 +38,7 @@ is_additive <- function(tree) {
   pair_distance <- cophenetic.phylo(tree)
   n <- ncol(pair_distance)
   if(n <= 3){ return(TRUE)
-  }
-  else{
+  } else{
     
       #get every subgroup of four
       for(i in c(1:(n-3))){
@@ -72,12 +71,9 @@ is_additive <- function(tree) {
         }
       }
     
-    
+  return(ret)
   }
   
-  return(ret)
-}
-
 
 #----------------------------------Divisive Clustering----------------------------------
 

@@ -26,9 +26,11 @@ library("TreeTools")
 library("dplyr")
 ```
 
-We'll generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
+This is the place where we'll be testing and exploring our divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Look for more extensive documentation on the computing process [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md). 
 
-```{r echo=TRUE, results='hide'}
+We generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
+
+```{r echo=TRUE, results='hide', eval = FALSE}
 setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
 n <- 100
 trees <- list(n)
@@ -51,20 +53,6 @@ for(i in 1:n){
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
-```
-
-Writing the data to file 
-
-```{r}
-getwd()
-tree_names <- paste(getwd(), "/TN93_Jul21/Trees/tree", 1:100, ".txt", sep = "")
-seed_names <- paste(getwd(), "/TN93_Jul21/Seeds/seed", 1:100, ".txt", sep = "")
-seqs_names <- paste(getwd(), "/TN93_Jul21/Sequences/sequence", 1:100, ".nex", sep = "")
-
-mapply(function(x,y) write(x,file = y), trees, tree_names)
-mapply(function(x,y) write(x, file = y), seeds, seed_names)
-
-mapply(function(x,y) write.nexus.data(x, file = y), sequences, seqs_names)
 ```
 
 
@@ -111,6 +99,8 @@ nj_trees <- sequences %>%
             lapply(nj) %>%
             lapply(write.tree)
 ```
+
+1. Robinson-Foulds distances: 
 
 ```{r include=FALSE}
 data <- data.frame(as.character(trees), as.character(divisive), as.character(agglomerative), 
