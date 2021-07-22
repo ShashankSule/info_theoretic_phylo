@@ -31,8 +31,8 @@ This is the place where we'll be testing and exploring our divisive and agglomer
 We generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
 
 ```{r echo=TRUE, results='hide', eval = FALSE}
-setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
-n <- 100
+#setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
+n <- 1
 trees <- list(n)
 sequences <- list(n)
 seeds <- list(n)

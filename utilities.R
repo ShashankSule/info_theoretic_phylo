@@ -33,7 +33,7 @@ DIM <- function(A) {
   return(size)
 }
 
-is_additive <- function(tree) {
+is_additive <- function(tree){
   ret <- TRUE
   pair_distance <- cophenetic.phylo(tree)
   n <- ncol(pair_distance)
@@ -52,11 +52,14 @@ is_additive <- function(tree) {
               d_jl <- pair_distance[j,l]
               d_kl <- pair_distance[k,l]
               
-              catch <- ((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))) &&
-                ((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))) &&
-                ((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl)))
-              print(catch)
-              if(catch){ return(!catch) }
+              
+              four_pt <- sort(c(d_ij + d_kl, d_ik + d_jl, d_il + d_jk), decreasing = TRUE)
+              if( !(all.equal(four_pt[1], four_pt[2])) ){
+                print(paste(i,j,k, l, sep = " "))
+                print(four_pt)
+                return(four_pt)
+              }
+              
               # if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){
               #   ret <- FALSE
               # }
@@ -64,8 +67,8 @@ is_additive <- function(tree) {
               #   ret <- FALSE
               # }
               # if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
-              #   ret <- FALSE
-              }
+              #    ret <- FALSE
+              # }
             }
           }
         }
@@ -73,7 +76,7 @@ is_additive <- function(tree) {
     
   return(ret)
   }
-  
+}  
 
 #----------------------------------Divisive Clustering----------------------------------
 
