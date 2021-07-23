@@ -1,15 +1,15 @@
 2        * 0: paml format (mc.paml); 1:paup format (mc.nex)
 
-10202633
+10202633 * Random Number Seed 
 
-16 1000 1 <# seqs>  <# nucleotide sites>  <# replicates>
+16 1000 1 * <# seqs>  <# nucleotide sites>  <# replicates>
 
-0.1 0.2 0.3 3.5
+0.1 0.2 0.3 3.5 * Birth rate, Death Rate, Sampling Fraction, Mutation Rate (tree height)
 
-6
+6  * model: 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85, 5:T92, 6:TN93, 7:REV"
 
-5 5
+5 5 * kappa or rate parameters in model
 
-0.5 4
+0.5 4 * <alpha>  <#categories for discrete gamma>
 
-0.25 0.28 0.34 0.13
+0.25 0.28 0.34 0.13 * * base frequencies (T C A G)
