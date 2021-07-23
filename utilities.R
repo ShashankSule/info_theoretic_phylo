@@ -54,10 +54,12 @@ is_additive <- function(tree){
               
               
               four_pt <- sort(c(d_ij + d_kl, d_ik + d_jl, d_il + d_jk), decreasing = TRUE)
+              #print(four_pt)
               if( !(all.equal(four_pt[1], four_pt[2])) ){
-                print(paste(i,j,k, l, sep = " "))
-                print(four_pt)
-                return(four_pt)
+                #print(paste(i,j,k, l, sep = " "))
+                #print(four_pt)
+                #return(four_pt)
+                ret <- FALSE
               }
               
               # if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){

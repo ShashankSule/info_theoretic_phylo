@@ -55,6 +55,33 @@ for(i in 1:n){
 }
 ```
 
+```{r echo=TRUE, results='hide', eval = FALSE}
+num_sequence <- 100
+trees <- list(num_sequence)
+divisive <- list(num_sequence)
+sequences <- list(num_sequence)
+# agg_trees <- list(num_sequence)
+# nj_trees <- list(num_sequence)
+
+#read the original trees
+for(i in c(1:num_sequence)){
+  filename <- paste("TN93_Jul21/Trees/tree", i, ".txt", sep = "")
+  trees[[i]] <- readChar(filename, file.info(filename)$size)
+}
+
+#read the divisive trees
+for(i in c(1:num_sequence)){
+  filename <- paste("TN93_Jul21/DivisiveTrees/tree", i, ".txt", sep = "")
+  divisive[[i]] <- readChar(filename, file.info(filename)$size)
+}
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+
+for(i in c(1:num_sequence)){
+  filename <- paste("TN93_Jul21/Sequences/sequence", i, ".nex", sep = "")
+  sequences[[i]] <- ReadCharacters(filename)
+}
+```
+
 
 Let's compute some diagnostics! 
 
@@ -100,50 +127,90 @@ nj_trees <- sequences %>%
             lapply(write.tree)
 ```
 
+
+
 1. Robinson-Foulds distances: 
 
 ```{r include=FALSE}
-data <- data.frame(as.character(trees), as.character(divisive), as.character(agglomerative), 
-                   as.character(nj_trees))
+data <- data.frame(as.character(trees), as.character(divisive), as.character(nj_trees))
 div_distance  <- mapply(RobinsonFoulds,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
        lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
-agg_distance <- mapply(RobinsonFoulds,
-       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
-       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
+# agg_distance <- mapply(RobinsonFoulds,
+#        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+#        lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
 nj_distance <- mapply(RobinsonFoulds,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
        lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
-diagnostics <- data.frame(as.character(div_distance), 
-                          as.character(agg_distance),   
-                          as.character(nj_distance))
+# diagnostics <- data.frame(as.character(div_distance),
+#                           as.character(agg_distance),
+#                           as.character(nj_distance))
 ```
 
 ```{r, echo = FALSE}
 
 
-div_mean <- diagnostics$as.character.div_distance. %>% 
-            as.character() %>% 
-            as.numeric() %>% 
-            mean()
-agg_mean <- diagnostics$as.character.agg_distance. %>% 
-            as.character() %>% 
-            as.numeric() %>% 
-            mean()
-nj_mean <-  diagnostics$as.character.nj_distance. %>% 
-            as.character() %>% 
-            as.numeric() %>% 
-            mean()
+# div_mean <- diagnostics$as.character.div_distance. %>%
+#             as.character() %>%
+#             as.numeric() %>%
+#             mean()
+# agg_mean <- diagnostics$as.character.agg_distance. %>% 
+#             as.character() %>% 
+#             as.numeric() %>% 
+#             mean()
+# nj_mean <-  diagnostics$as.character.nj_distance. %>% 
+#             as.character() %>% 
+#             as.numeric() %>% 
+#             mean()
 
-print(paste("Mean distance of divisive trees from original: ", div_mean, sep = ""))
-print(paste("Mean distance of agglomerative trees from original: ", agg_mean, sep = ""))
-print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
+print(div_distance)
+print(paste("Mean distance of divisive trees from original: ", mean(div_distance), sep = ""))
+print(paste("The proportion of divisive trees has 0 RF distance from the original tree is: ", sum(div_distance == 0) / num_sequence, sep = ""))
+hist(div_distance)
+
+print(nj_distance)
+print(paste("Mean distance of nj trees from original: ", mean(nj_distance), sep = ""))
+print(paste("The proportion of nj trees has 0 RF distance from the original tree is: ", sum(nj_distance == 0) / num_sequence, sep = ""))
+hist(nj_distance)
+summary(nj_distance)
+var(nj_distance)
+# print(paste("Mean distance of divisive trees from original: ", div_mean, sep = ""))
+# print(paste("Mean distance of agglomerative trees from original: ", agg_mean, sep = ""))
+# print(paste("Mean distance of NJ trees from original: ", nj_mean, sep = ""))
 ```
 
-2. Low tolerance ultrametricity: 
+2. Check the rootings using all.equals
+
+```{r, echo = FALSE}
+div_root  <- mapply(all.equal,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))),
+       use.edge.length = FALSE)
+# agg_root <- mapply(all.equal,
+#        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+#        lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))),
+#        use.edge.length = FALSE)
+nj_root <- mapply(all.equal,
+       lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       use.edge.length = FALSE)
+```
+
+```{r, echo = FALSE}
+print(div_root)
+# print(agg_root)
+print(nj_root)
+
+summary(div_root)
+# summary(agg_root)
+summary(nj_root)
+```
+
+
+3. Low tolerance ultrametricity: 
 
 ```{r include=FALSE}
-metricity <- data[,c(1,2,4)]
+metricity <- data[,c(1,2,3)]
 metricity[] <- metricity %>%
                lapply(function(x) is.ultrametric(read.tree(text = as.character(x))))
 
@@ -153,10 +220,10 @@ metricity[] <- metricity %>%
 summary(metricity)
 ```
 
-3. High tolerance ultrametricity: 
+4. High tolerance ultrametricity: 
 
 ```{r include=FALSE}
-low_metricity <- data[,c(1,2,4)]
+low_metricity <- data[,c(1,2,3)]
 low_metricity[] <- low_metricity %>%
                    lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-2))
 ```
@@ -166,7 +233,60 @@ summary(low_metricity)
 print("Tolerance used: 1e-2")
 ```
 
-4. Relative distance between originals: 
+5. 5. Check additivity: 
+
+```{r include=FALSE}
+# original_met <- logical(length = num_sequence)
+original_add <- logical(length = num_sequence)
+# div_met <- logical(length = num_sequence)
+div_add <- logical(length = num_sequence)
+# agg_met <- logical(length = num_sequence)
+# agg_add <- logical(length = num_sequence)
+# # nj_met <- logical(length = num_sequence)
+nj_add <- logical(length = num_sequence)
+
+for(i in c(1:num_sequence)){
+  # original_met[i] <- is.ultrametric(read.tree(text = as.character(trees[i])))
+  #original_add[i] <- is_additive(read.tree(text = as.character(trees[i])), 1e-15)
+  original_add[i] <- is_additive(read.tree(text = as.character(trees[i])))
+}
+
+for(i in c(1:num_sequence)){
+  # div_met[i] <- is.ultrametric(read.tree(text = as.character(divisive[i])))
+  #div_add[i] <- is_additive(read.tree(text = as.character(divisive[i])), 1e-15)
+  div_add[i] <- is_additive(read.tree(text = as.character(divisive[i])))
+}
+
+# for(i in c(1:num_sequence)){
+#   # agg_met[i] <- is.ultrametric(read.tree(text = as.character(agglomerative[i])))
+#   #agg_add[i] <- is_additive(read.tree(text = as.character(agglomerative[i])), 1e-15)
+#   agg_add[i] <- is_additive(read.tree(text = as.character(agglomerative[i])))
+# }
+# 
+for(i in c(1:num_sequence)){
+  # nj_met[i] <- is.ultrametric(read.tree(text = as.character(nj_trees[i])))
+  #nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees[i])), 1e-15)
+  nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees[i])))
+}
+```
+
+```{r}
+# print(original_met)
+# print(div_met)
+# print(agg_met)
+# print(nj_met)
+
+# print(original_add)
+# print(div_add)
+# print(agg_add)
+# print(nj_add)
+summary(original_add)
+summary(div_add)
+summary(nj_add)
+```
+
+
+6. Relative distance between originals: 
 
 ```{r}
 rel_distances <- matrix(rep(0,1e4), nrow = 100)
