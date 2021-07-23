@@ -6,6 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -65,19 +66,19 @@ sequences <- list(num_sequence)
 
 #read the original trees
 for(i in c(1:num_sequence)){
-  filename <- paste("TN93_Jul21/Trees/tree", i, ".txt", sep = "")
+  filename <- paste("./TN93_Jul21/Trees/tree", i, ".txt", sep = "")
   trees[[i]] <- readChar(filename, file.info(filename)$size)
 }
 
 #read the divisive trees
 for(i in c(1:num_sequence)){
-  filename <- paste("TN93_Jul21/DivisiveTrees/tree", i, ".txt", sep = "")
+  filename <- paste("./TN93_Jul21/DivisiveTrees/tree", i, ".txt", sep = "")
   divisive[[i]] <- readChar(filename, file.info(filename)$size)
 }
 divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
 
 for(i in c(1:num_sequence)){
-  filename <- paste("TN93_Jul21/Sequences/sequence", i, ".nex", sep = "")
+  filename <- paste("./TN93_Jul21/Sequences/sequence", i, ".nex", sep = "")
   sequences[[i]] <- ReadCharacters(filename)
 }
 ```
@@ -122,12 +123,10 @@ for(i in 1:100){
 ```{r, echo = TRUE, results= 'hide'}
 nj_trees <- sequences %>%
             lapply(as.DNAbin) %>%
-            lapply(dist.dna) %>%
+            lapply(dist.dna, model = "TN93", base.freq = c(0.34, 0.28, 0.13, 0.25)) %>%
             lapply(nj) %>%
             lapply(write.tree)
 ```
-
-
 
 1. Robinson-Foulds distances: 
 
@@ -225,15 +224,15 @@ summary(metricity)
 ```{r include=FALSE}
 low_metricity <- data[,c(1,2,3)]
 low_metricity[] <- low_metricity %>%
-                   lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-2))
+                   lapply(function(x) is.ultrametric(read.tree(text = as.character(x)), tol = 1e-6))
 ```
 
 ```{r}
 summary(low_metricity)
-print("Tolerance used: 1e-2")
+print("Tolerance used: 1e-6")
 ```
 
-5. 5. Check additivity: 
+5. Check additivity: 
 
 ```{r include=FALSE}
 # original_met <- logical(length = num_sequence)
@@ -384,5 +383,9 @@ edgelabels(signif(read.tree(text = divisive[[7]])$edge.length, digits = 4), font
 ```{r}
 read.tree(text = divisive[[7]])$edge.length
 read.tree(text = nj_trees[[7]])$edge.length
+```
+
+```{r}
+mdata <- lapply(trees, function(x) is.ultrametric(read.tree(text = x)))
 ```
 

@@ -1,26 +1,26 @@
-      seqfile = brown.nuc 
-     treefile = brown.trees
+      seqfile = mc.nex
+     treefile = brown2.trees
 
       outfile = mlb       * main result file
-        noisy = 2   * 0,1,2,3: how much rubbish on the screen
-      verbose = 0   * 1: detailed output, 0: concise output
-      runmode = 0   * 0: user tree;  1: semi-automatic;  2: automatic
+        noisy = 3   * 0,1,2,3: how much rubbish on the screen
+      verbose = 1   * 1: detailed output, 0: concise output
+      runmode = 2   * 0: user tree;  1: semi-automatic;  2: automatic
                     * 3: StepwiseAddition; (4,5):PerturbationNNI 
 
-        model = 7   * 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85
+        model = 0   * 0:JC69, 1:K80, 2:F81, 3:F84, 4:HKY85
                     * 5:T92, 6:TN93, 7:REV, 8:UNREST, 9:REVu; 10:UNRESTu
 
         Mgene = 0   * 0:rates, 1:separate; 2:diff pi, 3:diff kapa, 4:all diff
 
-*        ndata = 100
-        clock = 0   * 0:no clock, 1:clock; 2:local clock; 3:CombinedAnalysis
-    fix_kappa = 0   * 0: estimate kappa; 1: fix kappa at value below
-        kappa = 5  * initial or fixed kappa
+        ndata = 1   * number of replicates
+        clock = 1   * 0:no clock, 1:clock; 2:local clock; 3:CombinedAnalysis
+    fix_kappa = 1   * 0: estimate kappa; 1: fix kappa at value below
+        kappa = 1  * initial or fixed kappa
 
-    fix_alpha = 0   * 0: estimate alpha; 1: fix alpha at value below
-        alpha = 0.5   * initial or fixed alpha, 0:infinity (constant rate)
+    fix_alpha = 1   * 0: estimate alpha; 1: fix alpha at value below
+        alpha = 0   * initial or fixed alpha, 0:infinity (constant rate)
        Malpha = 0   * 1: different alpha's for genes, 0: one alpha
-        ncatG = 5   * # of categories in the dG, AdG, or nparK models of rates
+        ncatG = 0   * # of categories in the dG, AdG, or nparK models of rates
         nparK = 0   * rate-class models. 1:rK, 2:rK&fK, 3:rK&MK(1/K), 4:rK&MK 
 
         nhomo = 0   * 0 & 1: homogeneous, 2: kappa for branches, 3: N1, 4: N2

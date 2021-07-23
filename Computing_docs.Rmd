@@ -80,20 +80,21 @@ Now the `evolverRandomTree` is ready. To make a random tree and generate a seque
 
 ```{r echo=TRUE, eval=FALSE}
 setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
-n <- 100
+n <- 1
 trees <- list(n)
 sequences <- list(n)
 seeds <- list(n)
 for(i in 1:n){
   
   #Initialize the .dat file and store the seed
-  seeds[[i]] <- who_dat(seqs = 16,
+  seeds[[i]] <- who_dat(seqs = 6,
                 sites = 1000, 
-                model = 6, 
-                parameters = "5 5", 
-                gamma = "0.5 4", 
-                mutation = 3.5,
-                equilibrium = "0.25 0.28 0.34 0.13",
+                model = 0, 
+                parameters = "1", 
+                gamma = "0 0", 
+                mutation = 1.0,
+                sampling= 0.3,
+                equilibrium = "0.25 0.25 0.25 0.25",
                 spit_seed = TRUE)
   
   #Simulate the trees and the sequences

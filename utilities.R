@@ -438,7 +438,7 @@ who_dat <- function(format = 2,
                          "        * 0: paml format (mc.paml); 1:paup format (mc.nex)",sep = "")
   seed_string <- seed   #* random number seed (odd number)
   
-  seqs_sites_reps <- paste(seqs, sites, reps, "<# seqs>  <# nucleotide sites>  <# replicates>", sep = " ")
+  seqs_sites_reps <- paste(seqs, sites, reps, "* <# seqs>  <# nucleotide sites>  <# replicates>", sep = " ")
   
   #"5 10000 1 * <# seqs>  <# nucleotide sites>  <# replicates>"
   
