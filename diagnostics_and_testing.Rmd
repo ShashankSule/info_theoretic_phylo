@@ -25,6 +25,8 @@ library("phyclust")
 library("TreeDist")
 library("TreeTools")
 library("dplyr")
+library("parallel")
+library("adephylo")
 ```
 
 This is the place where we'll be testing and exploring our divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Look for more extensive documentation on the computing process [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md). 
@@ -45,7 +47,7 @@ for(i in 1:n){
                 model = 6, 
                 parameters = "5 5", 
                 gamma = "0.5 4", 
-                mutation = 3.5,
+                mutation = 5.5,
                 equilibrium = "0.25 0.28 0.34 0.13",
                 spit_seed = TRUE)
   
@@ -55,6 +57,7 @@ for(i in 1:n){
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
 ```
+
 
 ```{r echo=TRUE, results='hide', eval = FALSE}
 num_sequence <- 100
@@ -83,42 +86,11 @@ for(i in c(1:num_sequence)){
 }
 ```
 
+For the tree that works, the min edge to mutation ratio is 0.01454545 under TN93 assumptions with mutation 5.5; the minimax is ge. 
+
+For a tree that doesn't work, the min edge to mutation ratio is 0.002945818 under TN93 assumptions with mutation 5.5; the minimax is 0.003957794
 
 Let's compute some diagnostics! 
-
-1. Robinson-Foulds distances: 
-
-```{r, echo=TRUE,results='hide'}
-#trials <- c(1:100)
-start <- Sys.time()
-divisive <- lapply(sequences, infotree)
-finish <- Sys.time()
-divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
-div_time <- finish - start()
-```
-
-```{r}
-agglomerative <- list(100)
-
-pb <- progress_bar$new(
-      format = "  downloading [:bar] :percent eta: :eta",
-      total = 100, clear = FALSE, width= 60)
-
-for(i in 1:100){
-  pb$tick()
-  agglomerative[[i]] <- agg_clustering(sequences[[i]])
-}
-
-
-```
-
-
-```{r, echo = TRUE}
-# start <- Sys.time()
-# agglomerative <- lapply(lapply(sequences, agg_clustering), function(x) paste(x,";", sep = ""))
-# finish <- Sys.time()
-```
-
 
 ```{r, echo = TRUE, results= 'hide'}
 nj_trees <- sequences %>%
@@ -387,5 +359,9 @@ read.tree(text = nj_trees[[7]])$edge.length
 
 ```{r}
 mdata <- lapply(trees, function(x) is.ultrametric(read.tree(text = x)))
+```
+
+```{r}
+
 ```
 

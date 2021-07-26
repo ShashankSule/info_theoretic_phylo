@@ -6,6 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -24,6 +25,9 @@ library("phyclust")
 library("TreeDist")
 library("TreeTools")
 library("dplyr")
+library("readr")
+library("parallel")
+library("ggpubr")
 ```
 
 This is extended documentation for our file [`diagnostics_and_testing.md`](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/diagnostics_and_testing.md) where we test and explore the divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Obviously to test the accuracy of either algorithm we must compare its result to the "correct" tree--the tree that actually corresponds to the input sequence. For cases such as the `coiii.nex` dataset or the dataset from Press et al, the correct trees are already known. However, we would ideally like to test our algorithms against several datasets of varying parameters (such as sequence lengths and number of taxa) to get more detailed information about how they perform. We work as follows: we make a random tree and generate a sequence alignment that corresponds to it using `evolverRandomTree` from PAML. Then given the sequence alignment we compute the corresponding divisivie and agglomerative tree using `infotree` and `agg_clustering` We then find the Robinson-Foulds distances between these computed trees and the tree we used to generate the sequence alignment. We also compile data on the ultrametricity and addivity of these computed trees and on the relationship between the branch lengths of the original tree and those of the computed ones. We repeat this procedure a large number of times and compute summary statistics and plots of the data we get. 
@@ -73,7 +77,7 @@ e. On line 1257 add `fclose(fseqtree)`.
 Now the `evolverRandomTree` is ready. To make a random tree and generate a sequence from it, run `...src/evolverRandomTree 5 #PATHTODATFILE`. A sample `dat` file is given in `MCbaseRtree.dat`. In this case `#PATHTODATFILE` will be `paml4.8/MCbaseRtree.dat`. We have also written an R wrapper that `who_dat()` which writes a `.dat` file based on the model parameters you give it. Here is a sample, where we generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
 
 ```{r echo=TRUE, eval=FALSE}
-setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
+#setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
 n <- 1
 trees <- list(n)
 sequences <- list(n)
@@ -81,14 +85,13 @@ seeds <- list(n)
 for(i in 1:n){
   
   #Initialize the .dat file and store the seed
-  seeds[[i]] <- who_dat(seqs = 6,
+  seeds[[i]] <- who_dat(seqs = 16,
                 sites = 1000, 
-                model = 0, 
-                parameters = "1", 
-                gamma = "0 0", 
-                mutation = 1.0,
-                sampling= 0.3,
-                equilibrium = "0.25 0.25 0.25 0.25",
+                model = 6, 
+                parameters = "5 5", 
+                gamma = "0.5 4", 
+                mutation = 5.5,
+                equilibrium = "0.25 0.28 0.34 0.13",
                 spit_seed = TRUE)
   
   #Simulate the trees and the sequences
@@ -105,6 +108,158 @@ We must be very careful when using simulated alignments for evaluating correctne
 There are also parameters other than site number that can affect sampling error. For example, in the evolver method a large mutation rate (given all the other parameters are fixed) could cause too many sites to get substituted--resulting in a sequence alignment that looks almost random. Conversely, the mutation rate could be too low so the bifurcation between different groups of taxa would not be accurately reflected in the simulated sequence alignment. 
 
 What we can do is the following: use `baseml` in PAML to compute a tree (With and without branch lengths) using the same model parameters as we gave the `evolver`. We can compare this tree with the original one (such as computing their RF distances), and vary sequence generation over number of sites,  mutation rate, number of species, and number of replicates. Collect all these bits of data and look at the combination (for a fixed set of parameters say number of species and number of sites) that gives the best possible results on the topology. We choose those sequences for our testing because by this analysis they are likely to have lower sampling error; else we can always pick the particular sequence that hits a zero Robinson-Foulds distance. Note that such a situation only sharpens our belief of low sampling error in the sequence. 
+
+Update: Here's one way to try to nail the sampling error. For a given combination of mutation/number of OTUs/number of sites/model parameters we'll compute the following statistics: 
+
+1. 100 samples of trees and their sequences via `evolver`
+2. Back-computed trees from the sequences via `baseml` 
+3. Robinson-Foulds disances between original trees and produced trees 
+4. R^2 coefficients between original tree edge lengths and produced tree edge lengths 
+5. The minimum-edge to mutation ratio for all the trees. 
+
+Here is a sample vignette. I computed two examples, both of TN93 specifications with mutation length 5.5. In one example the back-computed tree has the same topology as the original one and the other one doesn't. We think that the former is what we should be choosing for testing the divisive/agglomerative algorithms because it has greater evidence of smaller sampling error. 
+
+Some sample code to run `baseml`: 
+
+```{r}
+#TN93 model specs 
+
+trial_sequence <- sequences[[1]]
+trial_sequence <- as.numeric(as.factor(trial_sequence)) - matrix(1, nrow(trial_sequence), ncol(trial_sequence))
+species_names <- rownames(trial_sequence)
+opts <- paml.baseml.control(noisy = 1, 
+                            runmode = 2, 
+                            model = 6,
+                            Mgene = 0,
+                            ndata = 1, 
+                            clock = 1,  
+                            fix_kappa = 1,  
+                            kappa = c(5,5),  
+                            fix_alpha = 1,  
+                            alpha = 0.5,   
+                            Malpha = 0,  
+                            ncatG = 4,
+                            fix_blength = -1)
+
+paml.baseml(trial_sequence, seqname = rownames(sequences[[1]]), opts = opts)
+```
+
+I've kept the two examples in `/SpecialExamples/SError_0TN93` so you can pull the trees off from there
+
+```{r}
+orig_tree_Y <- read.nexus("./SpecialExamples/SError_0TN93/Treethatworks/orig_tree.nex")
+prod_tree_Y <- read.tree(text = readLines("./SpecialExamples/SError_0TN93/Treethatworks/prod_tree.txt"))
+scalerat <- min(orig_tree_Y$edge.length)/5.5
+layout(matrix(1:2, 1, 2))
+par(mar = c(4, 0, 1, 0))
+plot(ladderize(reorder(orig_tree_Y, order = "cladewise")))
+text(0,2.5,paste("Scale ratio: ", signif(scalerat, digits = 3)), font = 1.5, pos = 4)
+text(0, 1.5, paste("RF distance: ", RobinsonFoulds(orig_tree_Y, prod_tree_Y)), pos = 4)
+title("original tree")
+#nodelabels(node = 12, "?", adj = 2, bg = "white")
+axisPhylo()
+plot(reorder(ladderize(prod_tree_Y), order = "cladewise"))
+title("Back-computed tree")
+axisPhylo()
+
+```
+
+```{r}
+original_lengths <- orig_tree_Y$edge.length
+produced_lengths <- prod_tree_Y$edge.length
+data <- data.frame(original_lengths, produced_lengths)
+ggplot(data, aes(x=original_lengths, y=produced_lengths))+
+       xlab("Original Lengths") + 
+       ylab("Back-computed Lengths") + 
+  #xlim(c(0,5)) + 
+  #ylim(c(0,5)) +
+  geom_smooth(method = "lm") + 
+  geom_point() + 
+  stat_cor()
+  #stat_regline_equation() 
+  # theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  # panel.background = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+Now for the sequence that doesn't work: 
+
+```{r}
+orig_tree_N <- read.nexus("./SpecialExamples/SError_0TN93/Treethatdoesntwork/orig_tree.nex")
+prod_tree_N <- read.tree(text = readLines("./SpecialExamples/SError_0TN93/Treethatdoesntwork/prod_tree.txt"))
+scalerat <- min(orig_tree_N$edge.length)/5.5
+layout(matrix(1:2, 1, 2))
+par(mar = c(4, 0, 1, 0))
+plot(ladderize(reorder(orig_tree_N, order = "cladewise")))
+text(0,2.5,paste("Scale ratio: ", signif(scalerat, digits = 3)), font = 1.5, pos = 4)
+text(0, 1.5, paste("RF distance: ", RobinsonFoulds(orig_tree_N, prod_tree_N)), pos = 4)
+title("original tree")
+#nodelabels(node = 12, "?", adj = 2, bg = "white")
+axisPhylo()
+plot(reorder(ladderize(prod_tree_N), order = "cladewise"))
+title("Back-computed tree")
+axisPhylo()
+```
+
+```{r}
+original_lengths <- orig_tree_N$edge.length
+produced_lengths <- prod_tree_N$edge.length
+data2 <- data.frame(original_lengths, produced_lengths)
+ggplot(data2, aes(x=original_lengths, y=produced_lengths))+
+       xlab("Original Lengths") + 
+       ylab("Back-computed Lengths") + 
+  #xlim(c(0,5)) + 
+  #ylim(c(0,5)) +
+  geom_smooth(method = "lm") + 
+  geom_point() + 
+  stat_cor()
+  #stat_regline_equation() 
+  # theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  # panel.background = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+## Ultrametricity 
+
+We observe that most trees are ultrametric at 6 digits of accuracy but not at 7 for at least the TN93 July 21 trials: 
+
+```{r}
+num_sequence <- 100
+trees <- list(num_sequence)
+#read the original trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./TN93_Jul21/Trees/tree", i, ".txt", sep = "")
+  trees[[i]] <- readChar(filename, file.info(filename)$size)
+}
+
+trees <- mclapply(trees, function(x) read.tree(text = x))
+```
+
+
+```{r}
+props <- numeric(10)
+for(i in c(1:10)){
+  metricity <- mclapply(trees, is.ultrametric, tol = 10^(-i))
+  props[i] <- sum(as.numeric(metricity))/100
+}
+
+```
+
+```{r}
+plot(c(1:10), props, xlab = "Tolerance (Digits)", ylab = "Proportion of Ultrametric Trees") 
+title("Proportion of ultrametric Trees vs \nNumerical Tolerance (TN93)")
+par(mar = c(4,0,0,0))
+```
+
+
+```{r}
+scale_data <- numeric(100)
+for(i in c(1:100)){
+  scale_data[i] <- min(trees[[i]]$edge.length)/3.5
+}
+```
+
+```{r}
+plot(c(1:100), scale_data)
+```
 
 # Computing the trees 
 
