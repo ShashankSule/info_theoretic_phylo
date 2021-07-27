@@ -231,112 +231,6 @@ rownames(codon_sequence) <- rownames(sequence)
 codon_sequence
 ```
 
-```{r}
-
-```
-
-
-Ok. Now that we've processed it into codon form we write a codon-style information-gain method for every codon site, partition and all. 
-
-```{r}
-
-# Full code: 
-
-# sequence <- codon_sequence[,2]
-# partition <- as.logical(splitset(10)[6,])
-
-info_gain_codon_site <- function(sequence, partition) {
-    A <- sequence[partition]
-    B <- sequence[!partition]
-    w_x <- length(A) / length(sequence)
-    w_y <- length(B) / length(sequence)
-    p_x <- table(A)/length(A)
-    p_y <- table(B)/length(B)
-    p_xy <- table(sequence)/length(sequence)
-    IG <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
-    return(IG)
-}
-
-vi_codon_site <- function(sequence, partition) {
-  A <- sequence[partition]
-    B <- sequence[!partition]
-    w_x <- length(A) / length(sequence)
-    w_y <- length(B) / length(sequence)
-    p_x <- table(A)/length(A)
-    p_y <- table(B)/length(B)
-    p_xy <- table(sequence)/length(sequence)
-    VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
-    return(VI)
-}
-
-info_gain_codon <- function(sequence, partition) {
-  part_line <- as.logical(partition)
-  IG <- c(0,0)
-  site_data <- asplit(sequence, 2)
-  #I <- sum(as.numeric(lapply(site_data, info_gain, partition = part_line)))
-  IG <- sum(apply(sequence, 2, info_gain_codon_site, partition = part_line))
-  
-  #print(paste("I =", I))
-  return(IG)
-}
-
-vi_codon <- function(sequence, partition) {
-  part_line <- as.logical(partition)
-  VI <- c(0,0)
-  VI <- sum(apply(sequence, 2, vi_codon_site, partition = part_line))
-  
-  #print(paste("IG =", I))
-  return(VI)
-}
-
-```
-
-```{r}
-infotree_codon <- function(sequence) {
-  #input:
-  # sequence -- matrix of characters
-  # output:
-  # Newick string representing minimum information gain tree
-  # if there are only two sequences return dichotomous tree
-  l = DIM(sequence)
-  names = row.names(sequence)
-  num_sites = ncol(sequence)
-  
-  if (l == 1) {
-    tree_string <- names[1]
-  } else if (l == 2) {
-    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    branch <- 2*vi_codon(sequence, part_matrix)/num_sites 
-    tree_string <-
-      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
-    cat("Done!\n")
-  } else{
-    # There are more than two sequences so we must find the optimal partition.
-    
-    cat("Partitioning...")
-    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    parts <- asplit(part_matrix,1)
-    res <- mclapply(parts, info_gain_codon, sequence = sequence)
-    max_val <- max(as.numeric(res))
-    max_part <- part_matrix[which.max(as.numeric(res)), ]
-    #res <- apply(part_matrix, 1, max_info, seq = sequence)
-    #max_val <- max(res)
-    #max_part <- part_matrix[which.max(res), ]
-    branch <- vi_codon(sequence, max_part)/num_sites
-    cur_partition <- as.logical(max_part)
-    left_sequence <- sequence[cur_partition, , drop = FALSE]
-    right_sequence <- sequence[!cur_partition, , drop = FALSE]
-    left_string <- infotree(left_sequence)
-    right_string <- infotree(right_sequence)
-    
-    tree_string <-
-      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
-    
-  }
-  return(tree_string)
-}
-```
-
 Let's clock the old against the new 
 
 ```{r}
@@ -363,7 +257,7 @@ profvis({infotree(sequence)})
 We check the trees produced by information gain and symmetrized cross entropy for the 9 tips with sequence length 1. 
 
 ```{r,echo=FALSE}
-IG_tree_string <- paste(infopart(seqs), ";", sep="")
+IG_tree_string <- paste(infotree(seqs), ";", sep="")
 ```
 
 
