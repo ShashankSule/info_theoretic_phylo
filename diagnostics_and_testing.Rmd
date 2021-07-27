@@ -27,11 +27,14 @@ library("TreeTools")
 library("dplyr")
 library("parallel")
 library("adephylo")
+
 ```
 
 This is the place where we'll be testing and exploring our divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Look for more extensive documentation on the computing process [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md). 
 
-We generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
+# Simulated Sequences 
+
+We generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. Don't run this unless you want to generate new data! 
 
 ```{r echo=TRUE, results='hide', eval = FALSE}
 #setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
@@ -58,6 +61,7 @@ for(i in 1:n){
 }
 ```
 
+## Cummings et al 2003 parameters with TN93, 16 species, and 100 sites
 
 ```{r echo=TRUE, results='hide', eval = FALSE}
 num_sequence <- 100
@@ -273,50 +277,6 @@ par(mar=c(5.1, 4.1, 4.1, 4.1))
 plot(rel_distances[1:50,1:50])
 ```
 
-# Reading files from disk without original trees 
-
-```{r}
-
-d_file_names <- paste("/TN93_Jul7/DivisiveTrees/100_16_",1:100,".txt", sep = "")
-a_file_names <- paste("/TN93_Jul7/AgglomerativeTrees/100_16_",1:100,".txt", sep = "")
-s_file_names <- paste("TN93_Jul7/SequenceData/100_16_",1:100,".nex", sep = "")
-divisive <- mclapply(d_file_names, 
-                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
-                                 1, 
-                                 nchar(read_file(paste(getwd(), x, sep = "")))-2))
-agglomerative <- mclapply(a_file_names, 
-                     function(x) substr(read_file(paste(getwd(), x, sep = "")),
-                                 1, 
-                                 nchar(read_file(paste(getwd(), x, sep = "")))-1))
-sequences <- mclapply(s_file_names, 
-                      ReadCharacters)
-nj_trees <- nj_trees <- sequences %>%
-            mclapply(as.DNAbin) %>%
-            mclapply(dist.dna) %>%
-            mclapply(upgma) %>%
-            mclapply(write.tree)
-
-                     
-```
-
-
-Since we don't have the original trees, we'll compare them with neighbour-joining trees. 
-
-```{r}
-data <- data.frame(as.character(divisive), as.character(agglomerative), 
-                   as.character(nj_trees))
-div_distance  <- mapply(RobinsonFoulds,
-       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
-       lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
-agg_distance <- mapply(RobinsonFoulds,
-       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
-       lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
-# nj_distance <- mapply(RobinsonFoulds,
-#        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
-#        lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
-diagnostics <- data.frame(as.numeric(div_distance), 
-                          as.numeric(agg_distance))
-```
 
 Now we'll filter those that have zero robinson-foulds distances 
 
@@ -342,26 +302,93 @@ for (i in index){
 }
 ```
 
+# Cummings et al 1995
+
 ```{r}
-plot(read.tree(text = nj_trees[[7]]))
-edgelabels(read.tree(text = nj_trees[[7]])$edge.length, font= 0.5)
+names <- c("atpase6",
+"atpase8",
+"coii",
+"coiii",
+"cytb",
+"nd1",
+"nd2",
+"nd3",
+"nd4",
+"nd4l",
+"nd5",
+"nd6")
+
+d_file_paths <- paste("./1995_trees/Divisive/", names, ".txt", sep = "")
+a_file_paths <- paste("./1995_trees/Agglomerative/", names, ".txt", sep = "")
+
+d_trees <- d_file_paths %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
+a_trees <- a_file_paths %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
+
+```
+
+1. Divisive Trees
+
+```{r}
+
+gen_tree <- read.tree(text = "((Carp, Loach), (Xenopus, (Chicken, ((Mouse, Rat),(Human, (Seal, (Whale, Bovine)))))));")
+plot(gen_tree)
+title("Original tree")
+
+#d_trees <- d_trees[-3]
+for(i in c(1:12)){
+  
+  plot(d_trees[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
 ```
 
 ```{r}
-plot(read.tree(text = divisive[[7]]))
-edgelabels(signif(read.tree(text = divisive[[7]])$edge.length, digits = 4), font= 0.5)
+d_distances <- as.numeric(mclapply(d_trees, function(x) RobinsonFoulds(gen_tree, x)))
+d_metricity <- as.numeric(mclapply(d_trees, is.ultrametric))
+d_additivity <- as.numeric(mclapply(d_trees, is_additive))
+hist(d_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of divisive trees \ncomputed from C. et al '95 datasets to original")
+
+text(7.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(d_distances == 0))/12))
+text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/12))
+text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/12))
 ```
+
+2. Agglomerative Trees 
 
 ```{r}
-read.tree(text = divisive[[7]])$edge.length
-read.tree(text = nj_trees[[7]])$edge.length
+plot(gen_tree)
+title("Original tree")
+
+#d_trees <- d_trees[-3]
+for(i in c(1:12)){
+  
+  plot(a_trees[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
 ```
+
 
 ```{r}
-mdata <- lapply(trees, function(x) is.ultrametric(read.tree(text = x)))
+a_distances <- as.numeric(mclapply(a_trees, function(x) RobinsonFoulds(gen_tree, x)))
+a_metricity <- as.numeric(mclapply(a_trees, is.ultrametric))
+a_additivity <- as.numeric(mclapply(a_trees, is_additive))
+hist(a_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of agglomerative trees \ncomputed from C. et al '95 datasets to original")
+
+text(9.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(a_distances == 0))/12))
+text(9.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(a_metricity == 1))/12))
+text(9.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(a_additivity == 1))/12))
 ```
 
-```{r}
-
-```
 

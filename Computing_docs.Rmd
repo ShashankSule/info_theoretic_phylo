@@ -78,16 +78,17 @@ Now the `evolverRandomTree` is ready. To make a random tree and generate a seque
 
 ```{r echo=TRUE, eval=FALSE}
 #setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
-n <- 1
+n <- 12
 trees <- list(n)
 sequences <- list(n)
 seeds <- list(n)
 for(i in 1:n){
   
   #Initialize the .dat file and store the seed
-  seeds[[i]] <- who_dat(seqs = 16,
+  seeds[[i]] <- who_dat(seqs = 5,
                 sites = 1000, 
-                model = 6, 
+                model = 6,
+                reps = 1,
                 parameters = "5 5", 
                 gamma = "0.5 4", 
                 mutation = 5.5,
@@ -101,13 +102,42 @@ for(i in 1:n){
 }
 ```
 
+Or load sequence data
+
+```{r}
+num_sequence <- 100
+trees <- list(num_sequence)
+divisive <- list(num_sequence)
+sequences <- list(num_sequence)
+# agg_trees <- list(num_sequence)
+# nj_trees <- list(num_sequence)
+
+#read the original trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./TN93_Jul21/Trees/tree", i, ".txt", sep = "")
+  trees[[i]] <- readChar(filename, file.info(filename)$size)
+}
+
+#read the divisive trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./TN93_Jul21/DivisiveTrees/tree", i, ".txt", sep = "")
+  divisive[[i]] <- readChar(filename, file.info(filename)$size)
+}
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+
+for(i in c(1:num_sequence)){
+  filename <- paste("./TN93_Jul21/Sequences/sequence", i, ".nex", sep = "")
+  sequences[[i]] <- ReadCharacters(filename)
+}
+```
+
 ## Sampling error concerns
 
 We must be very careful when using simulated alignments for evaluating correctness because, as mentioned on p.186 of Yang 2006, a tree reconstruction algorithm can go wrong because of sampling error in the input sequence alignment. In other words, since the sequence alignment is generated from a stochastic model (such as JC69) on the original tree, the alignment only corresponds perfectly to the tree as the number of sites goes to infinity. However, since we always use a finite number of sites (modern computers don't yet work with an infinite amount of data), there is a chance that the simulated alignment corresponds to more than just one tree. Consequently the reconstructed tree may not match the original not because of a flaw in the algorithm but simply because the sequence alignment has too few sites to actually reflect its phylogeny. So before we even start testing our algorithms we need to make sure that the data we give it has low enough (though never zero) sampling error or noise. 
 
-There are also parameters other than site number that can affect sampling error. For example, in the evolver method a large mutation rate (given all the other parameters are fixed) could cause too many sites to get substituted--resulting in a sequence alignment that looks almost random. Conversely, the mutation rate could be too low so the bifurcation between different groups of taxa would not be accurately reflected in the simulated sequence alignment. 
+There are also parameters other than site number that can affect sampling error. For example, in the evolver method a large mutation parameter/tree height (given all the other parameters are fixed) could cause too many sites to get substituted--resulting in a sequence alignment that looks almost random. Conversely, the mutation parameter could be too low so the bifurcation between different groups of taxa would not be accurately reflected in the simulated sequence alignment. 
 
-What we can do is the following: use `baseml` in PAML to compute a tree (With and without branch lengths) using the same model parameters as we gave the `evolver`. We can compare this tree with the original one (such as computing their RF distances), and vary sequence generation over number of sites,  mutation rate, number of species, and number of replicates. Collect all these bits of data and look at the combination (for a fixed set of parameters say number of species and number of sites) that gives the best possible results on the topology. We choose those sequences for our testing because by this analysis they are likely to have lower sampling error; else we can always pick the particular sequence that hits a zero Robinson-Foulds distance. Note that such a situation only sharpens our belief of low sampling error in the sequence. 
+What we can do is the following: use `baseml` in PAML to compute a tree (With and without branch lengths) using the same model parameters as we gave the `evolver`. We can compare this tree with the original one (such as computing their RF distances), and vary sequence generation over number of sites,  mutation time, number of species, and number of replicates. Collect all these bits of data and look at the combination (for a fixed set of parameters say number of species and number of sites) that gives the best possible results on the topology. We choose those sequences for our testing because by this analysis they are likely to have lower sampling error; else we can always pick the particular sequence that hits a zero Robinson-Foulds distance. Note that such a situation only sharpens our belief of low sampling error in the sequence. 
 
 Update: Here's one way to try to nail the sampling error. For a given combination of mutation/number of OTUs/number of sites/model parameters we'll compute the following statistics: 
 
@@ -141,8 +171,31 @@ opts <- paml.baseml.control(noisy = 1,
                             ncatG = 4,
                             fix_blength = -1)
 
-paml.baseml(trial_sequence, seqname = rownames(sequences[[1]]), opts = opts)
+paml_output <- paml.baseml(trial_sequence, seqname = rownames(sequences[[1]]), opts = opts)
 ```
+
+Running the above code on a list of sequences: 
+
+```{r}
+# Preprocess 
+
+trial_sequences <- mclapply(sequences, function(x) as.numeric(as.factor(x)) - matrix(1, nrow(x), ncol(x)))
+species_names <- rownames(sequences[[1]])
+opts <- paml.baseml.control(noisy = 1, 
+                            runmode = 2, 
+                            model = 6,
+                            Mgene = 0,
+                            ndata = 1, 
+                            clock = 1,  
+                            fix_kappa = 1,  
+                            kappa = c(5,5),  
+                            fix_alpha = 1,  
+                            alpha = 0.5,   
+                            Malpha = 0,  
+                            ncatG = 4)
+paml_outputs <- mclapply(trial_sequences, paml.baseml, seqname = species_names, opts = opts)
+```
+
 
 I've kept the two examples in `/SpecialExamples/SError_0TN93` so you can pull the trees off from there
 

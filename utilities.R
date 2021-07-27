@@ -88,10 +88,10 @@ is_additive <- function(tree){
 
 #----------------------------------Divisive Clustering----------------------------------
 
-info_gain <- function(sequence, partition) {
+info_gain_site <- function(sequence, partition) {
   # inputs:
   # partition -- boolean denoting the partitions
-  # sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
+  # sequence -- dataframe of type DNAbin or phyDat with each row a single nucleotide
   # pos -- integer denoting the position in the sequence
   # output:
   # I(partition)
@@ -111,38 +111,14 @@ info_gain <- function(sequence, partition) {
   py_all <- base.freq(as.DNAbin(B), all = TRUE)
   p_y <- py_all[c("a", "c", "g", "t", "-")]
   
-#<<<<<<< Updated upstream
-  # Computing weights
-#=======
-  # Computing weight
-  #w_x <- length(A)/length(sequence)
-  #w_y <- length(B)/length(sequence)
-#>>>>>>> Stashed changes
   w_x <- length(A) / length(sequence)
   w_y <- length(B) / length(sequence)
   
-  I <- 0
-  entr_xy <- 0
-  entr_x <- 0
-  entr_y <- 0
-  for (i in c(1:5)) {
-    
-    if (p_xy[i] != 0) {
-      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
-    }
-    if (p_x[i] != 0) {
-      entr_x <- entr_x - p_x[i] * log2(p_x[i])
-    }
-    if (p_y[i] != 0) {
-      entr_y <- entr_y - p_y[i] * log2(p_y[i])
-    }
-  }
-  I <- entr_xy - w_x * entr_x - w_y * entr_y
+  I <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
   
-  return(I)
 }
 
-mutual_info <- function(sequence, partition) {
+vi_site <- function(sequence, partition) {
   
   pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
   p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
@@ -161,37 +137,27 @@ mutual_info <- function(sequence, partition) {
   entr_xy <- 0
   entr_x <- 0
   entr_y <- 0
-  for (i in c(1:5)) {
-    
-    if (p_xy[i] != 0) {
-      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
-    }
-    if (p_x[i] != 0) {
-      entr_x <- entr_x - p_x[i] * log2(p_x[i])
-    }
-    if (p_y[i] != 0) {
-      entr_y <- entr_y - p_y[i] * log2(p_y[i])
-    }
-  }
-  VI <- 2*entr_xy - entr_x - entr_y
+  
+  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
   return(VI)
+  
 }
 
-max_info <- function(partition, seq) {
+info_gain <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
   site_data <- asplit(seq, 2)
   #I <- sum(as.numeric(lapply(site_data, info_gain, partition = part_line)))
-  I <- sum(apply(seq, 2, info_gain, partition = part_line))
+  I <- sum(apply(seq, 2, info_gain_site, partition = part_line))
   
   #print(paste("I =", I))
   return(I)
 }
 
-max_branch <- function(partition, seq) {
+vi <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
-  I <- sum(apply(seq, 2, mutual_info, partition = part_line))
+  I <- sum(apply(seq, 2, vi_site, partition = part_line))
   
   #print(paste("IG =", I))
   return(I)
@@ -212,7 +178,7 @@ infotree <- function(sequence) {
     tree_string <- names[1]
   } else if (l == 2) {
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    branch <- mutual_info(sequence, part_matrix)/num_sites
+    branch <- vi(part_matrix, sequence)/num_sites 
     tree_string <-
       paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
     cat("Done!\n")
@@ -222,54 +188,15 @@ infotree <- function(sequence) {
     cat("Partitioning...")
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     parts <- asplit(part_matrix,1)
-    res <- mclapply(parts, max_info, seq = sequence)
+    res <- mclapply(parts, info_gain, seq = sequence)
     max_val <- max(as.numeric(res))
     max_part <- part_matrix[which.max(as.numeric(res)), ]
     #res <- apply(part_matrix, 1, max_info, seq = sequence)
     #max_val <- max(res)
     #max_part <- part_matrix[which.max(res), ]
-    branch <- max_branch(max_part, sequence)/num_sites
+    branch <- vi(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
     
-    # par <- as.logical(splitset(l)[2, ])
-    # # I <- 0
-    # # for (j in 1:dim(sequence)[2]) {
-    # #   #print(paste("I =",I))
-    # #   I <- I + mutual_info(partition, sequence, j)
-    # #   
-    # # }
-    # max_val <- sum(apply(sequence, 2, mutual_info, partition = par))
-    # max_part <- par
-    
-    # for (i in 2:(2 ^ (l - 1))) {
-    #   # Run through all possible partitions
-    #   I <- 0
-    #   # Compute overall mutual information
-    #   #print(paste("computing the ",i,"th partition"))
-    #   par <- as.logical(splitset(l)[i, ])
-    #   
-    #   # for (j in 1:dim(sequence)[2]) {
-    #   #   I <- I + mutual_info(partition, sequence, j)
-    #   # }
-    #   I <- sum(apply(sequence, 2, mutual_info, partition = par))
-    #   
-    #   print(paste("I =", I))
-    #   
-    #   if (I > max_val) {
-    #     max_val <- I
-    #     max_part <- par
-    #   }
-    # }
-    
-    # part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-    # res <- apply(part_matrix, 1, max_info, seq = sequence)
-    # inf <- apply(part_matrix, 1, max_branch, seq = sequence)
-    # max_val <- max(res)
-    # max_part <- part_matrix[which.max(res), ]
-    # branch <- inf[which.max(res)]
-    # cur_partition <- as.logical(max_part)
-    
-#>>>>>>> Stashed changes
     #print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
     right_sequence <- sequence[!cur_partition, , drop = FALSE]
@@ -283,6 +210,96 @@ infotree <- function(sequence) {
   return(tree_string)
 }
 
+
+#---------------------------Divisive Clustering (Codons)----------------------------
+
+info_gain_codon_site <- function(sequence, partition) {
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  p_x <- table(A)/length(A)
+  p_y <- table(B)/length(B)
+  p_xy <- table(sequence)/length(sequence)
+  IG <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  return(IG)
+}
+
+vi_codon_site <- function(sequence, partition) {
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  p_x <- table(A)/length(A)
+  p_y <- table(B)/length(B)
+  p_xy <- table(sequence)/length(sequence)
+  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
+  return(VI)
+}
+
+info_gain_codon <- function(sequence, partition) {
+  part_line <- as.logical(partition)
+  IG <- c(0,0)
+  site_data <- asplit(sequence, 2)
+  #I <- sum(as.numeric(lapply(site_data, info_gain, partition = part_line)))
+  IG <- sum(apply(sequence, 2, info_gain_codon_site, partition = part_line))
+  
+  #print(paste("I =", I))
+  return(IG)
+}
+
+vi_codon <- function(sequence, partition) {
+  part_line <- as.logical(partition)
+  VI <- c(0,0)
+  VI <- sum(apply(sequence, 2, vi_codon_site, partition = part_line))
+  
+  #print(paste("IG =", I))
+  return(VI)
+}
+
+infotree_codon <- function(sequence) {
+  #input:
+  # sequence -- matrix of characters
+  # output:
+  # Newick string representing minimum information gain tree
+  # if there are only two sequences return dichotomous tree
+  l = DIM(sequence)
+  names = row.names(sequence)
+  num_sites = ncol(sequence)
+  
+  if (l == 1) {
+    tree_string <- names[1]
+  } else if (l == 2) {
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    branch <- 2*vi_codon(sequence, part_matrix)/num_sites 
+    tree_string <-
+      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
+    cat("Done!\n")
+  } else{
+    # There are more than two sequences so we must find the optimal partition.
+    
+    cat("Partitioning...")
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    parts <- asplit(part_matrix,1)
+    res <- mclapply(parts, info_gain_codon, sequence = sequence)
+    max_val <- max(as.numeric(res))
+    max_part <- part_matrix[which.max(as.numeric(res)), ]
+    #res <- apply(part_matrix, 1, max_info, seq = sequence)
+    #max_val <- max(res)
+    #max_part <- part_matrix[which.max(res), ]
+    branch <- vi_codon(sequence, max_part)/num_sites
+    cur_partition <- as.logical(max_part)
+    left_sequence <- sequence[cur_partition, , drop = FALSE]
+    right_sequence <- sequence[!cur_partition, , drop = FALSE]
+    left_string <- infotree_codon(left_sequence)
+    right_string <- infotree_codon(right_sequence)
+    
+    tree_string <-
+      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
+    
+  }
+  return(tree_string)
+}
 
 #----------------------------Agglomerative Clustering--------------------------------
 
@@ -410,7 +427,7 @@ agg_clustering <- function(sequence) {
     
     x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
     y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-    branch <- alg_info(sequence, x_names, y_names)
+    branch <- alg_info(sequence, x_names, y_names)/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
   }
   #print(tree_string)
