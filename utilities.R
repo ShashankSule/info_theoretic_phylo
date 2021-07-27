@@ -144,6 +144,8 @@ vi_site <- function(sequence, partition) {
 }
 
 info_gain <- function(partition, seq) {
+  
+  # Compute information gain over all sites (assuming all sites are independent)
   part_line <- as.logical(partition)
   I <- c(0,0)
   site_data <- asplit(seq, 2)
@@ -155,6 +157,7 @@ info_gain <- function(partition, seq) {
 }
 
 vi <- function(partition, seq) {
+  # Compute VI over all sites (assuming all sites are independent)
   part_line <- as.logical(partition)
   I <- c(0,0)
   I <- sum(apply(seq, 2, vi_site, partition = part_line))
@@ -170,6 +173,7 @@ infotree <- function(sequence) {
   # output:
   # Newick string representing minimum information gain tree
   # if there are only two sequences return dichotomous tree
+  
   l = DIM(sequence)
   names = row.names(sequence)
   num_sites = ncol(sequence)
@@ -196,6 +200,8 @@ infotree <- function(sequence) {
     #max_part <- part_matrix[which.max(res), ]
     branch <- vi(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
+    
+    # Partition sequence optimally into left and right sequences 
     
     #print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
