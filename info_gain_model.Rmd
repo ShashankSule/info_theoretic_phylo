@@ -285,6 +285,18 @@ print(end - start)
 
 Nope! `base.freq` wins. 
 
+## Generalizing code 
+
+```{r}
+names <- rownames(coiii)
+set <- c("Bovine", "Carp", "Chicken", "Human")
+```
+
+```{r}
+names %in% set
+```
+
+
 # Results
 
 ## Sequences of length 1 

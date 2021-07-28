@@ -431,18 +431,18 @@ vi_codon_site_names <- function(sequence, name1, name2) {
   B <- sequence[name2]
   p_x <- table(A)/length(A)
   p_y <- table(B)/length(B)
-  p_xy <- table(sequence)/length(sequence)
-  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
-  return(VI)
+  p_xy <- table(c(A,B))/(length(A) + length(B))
+  VI_site <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
+  return(VI_site)
 }
 
 vi_codon_names <- function(seq_matrix, x_names, y_names) {
-  I_alg <- sum(apply(seq_matrix, 2, vi_codon_site_names, name1 = x_names, name2 = y_names))
-  return(I_alg)
+  VI <- sum(apply(seq_matrix, 2, vi_codon_site_names, name1 = x_names, name2 = y_names))
+  return(VI)
 }
 
 
-agg_clustering <- function(sequence) {
+agg_clustering_codons <- function(sequence) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
   #ouput:
@@ -471,12 +471,6 @@ agg_clustering <- function(sequence) {
         read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
       y_names <-
         read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-      #print(x_names)
-      #print(y_names)
-      
-      # max_dist <-
-      #   alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
-      #            matrix(sequence[y_names, ], nrow = length(y_names)))
       max_dist <- vi_codon_names(sequence, x_names, y_names)
       max_pair <- c(1, 2)
       
@@ -509,7 +503,7 @@ agg_clustering <- function(sequence) {
     
     x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
     y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-    branch <- alg_info(sequence, x_names, y_names)/num_sites
+    branch <- vi_codon_names(sequence, x_names, y_names)/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
   }
   #print(tree_string)

@@ -305,8 +305,7 @@ for (i in index){
 # Cummings et al 1995
 
 ```{r}
-names <- c("all-dna",
-           "atpase6",
+names <- c("atpase6",
 "atpase8",
 "coii",
 "coiii",
@@ -328,11 +327,11 @@ d_trees_nuc <- d_file_paths_nuc %>%
                   mclapply(function(x) paste(x,";", sep = "")) %>%
                   mclapply(function(x) read.tree(text = x)) %>%
                   mclapply(ladderize)
-# a_trees_nuc <- a_file_paths_nuc %>%
-#                   mclapply(readLines) %>%
-#                   mclapply(function(x) paste(x,";", sep = "")) %>%
-#                   mclapply(function(x) read.tree(text = x)) %>%
-#                   mclapply(ladderize)
+a_trees_nuc <- a_file_paths_nuc %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
 d_trees_cod <- d_file_paths_cod %>%
                   mclapply(readLines) %>%
                   mclapply(function(x) paste(x,";", sep = "")) %>%
@@ -386,6 +385,10 @@ for(i in c(1:12)){
   axisPhylo()
 }
 ```
+
+
+
+
 
 
 ```{r}
