@@ -372,41 +372,63 @@ agg_clustering <- function(sequence) {
   } else{
     #More than two species
     
-    end <- length(forests) - 2
-    for (i in c(1:end)) {
-      #Do this subroutine n-2 times!
-      
-      x_names <-
-        read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
-      y_names <-
-        read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-      #print(x_names)
-      #print(y_names)
-      
-      # max_dist <-
-      #   alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
-      #            matrix(sequence[y_names, ], nrow = length(y_names)))
-      max_dist <- alg_info(sequence, x_names, y_names)
-      max_pair <- c(1, 2)
-      
-      #Subroutine for computing the closest two clusters
-      
-      for (k in 1:(length(forests) - 1)) {
-        for (j in (k + 1):length(forests)) {
-          x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
-          y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
-          # dist <-
-          #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
-          dist <- alg_info(sequence, x_names, y_names)
-          #cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
-          if (dist < max_dist) {
-            max_dist <- dist
-            max_pair <- c(k, j)
-          }
+    end <- length(forests) - 3
+    dist_matrix <- matrix(0, end+3, end+3)
+    
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    #print(x_names)
+    #print(y_names)
+    
+    max_dist <- alg_info(sequence, x_names, y_names)
+    max_pair <- c(1, 2)
+    
+    #Subroutine for computing the closest two clusters
+    
+    for (k in 1:(length(forests) - 1)) {
+      for (j in (k + 1):length(forests)) {
+        x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
+        y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        # dist <-
+        #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
+        dist <- alg_info(sequence, x_names, y_names)
+        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        dist_matrix[k,j] <- dist
+        if (dist < max_dist) {
+          max_dist <- dist
+          max_pair <- c(k, j)
         }
       }
+    }
+    
+    #Subroutine for joining the two forests
+    new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
+    forests <- forests[-max_pair]
+    forests <- c(forests, new_branch)
+    new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
+    #print(new_tip)
+    tips <- tips[-max_pair]
+    tips <- c(tips, new_tip)
+    dist_matrix <- dist_matrix[-max_pair, -max_pair]
+    dist_matrix <- rbind(dist_matrix, integer(end+1))
+    dist_matrix <- cbind(dist_matrix, integer(end+2))
+    
+    for(i in c(1:end)){
+      l <- length(forests)
+      #first calculate the new distances
+      for(j in 1:(l-1)) {
+        x_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        y_names <- read.tree(text = paste(forests[l], ";", sep = ""))$tip.label
+        dist <- alg_info(sequence, x_names, y_names)
+        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        dist_matrix[j,l] <- dist
+      }
       
-      #Subroutine for joining the two forests
+      #find the minimum distance
+      dist_matrix[row(dist_matrix)>=col(dist_matrix)] <- NA
+      max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
+      max_dist <- dist_matrix[max_pair]
+      
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
@@ -414,6 +436,9 @@ agg_clustering <- function(sequence) {
       #print(new_tip)
       tips <- tips[-max_pair]
       tips <- c(tips, new_tip)
+      dist_matrix <- dist_matrix[-max_pair, -max_pair]
+      dist_matrix <- rbind(dist_matrix, integer(l-2))
+      dist_matrix <- cbind(dist_matrix, integer(l-1))
     }
     
     x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
