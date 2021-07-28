@@ -84,7 +84,6 @@ nuc_to_codon <- function(sequence){
   
 }
 
-
 #----------------------------------Divisive Clustering----------------------------------
 
 info_gain_site <- function(sequence, partition) {
@@ -216,7 +215,7 @@ infotree <- function(sequence) {
 }
 
 
-#---------------------------Divisive Clustering (Codons)----------------------------
+#---------------------------Divisive Clustering (Codons)--------------------------------------------------------
 
 info_gain_codon_site <- function(sequence, partition) {
   A <- sequence[partition]
@@ -306,7 +305,7 @@ infotree_codon <- function(sequence) {
   return(tree_string)
 }
 
-#----------------------------Agglomerative Clustering--------------------------------
+#----------------------------Agglomerative Clustering--------------------------------------------------------------
 
 
 site_info <- function(seq, name1, name2) {
@@ -450,9 +449,99 @@ agg_clustering <- function(sequence) {
   return(tree_string)
 }
 
+#----------------------------Agglomerative Clustering (Codons)-------------------------------------------------------------
+
+vi_codon_site_names <- function(sequence, name1, name2) {
+  A <- sequence[name1]
+  B <- sequence[name2]
+  p_x <- table(A)/length(A)
+  p_y <- table(B)/length(B)
+  p_xy <- table(sequence)/length(sequence)
+  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
+  return(VI)
+}
+
+vi_codon_names <- function(seq_matrix, x_names, y_names) {
+  I_alg <- sum(apply(seq_matrix, 2, vi_codon_site_names, name1 = x_names, name2 = y_names))
+  return(I_alg)
+}
 
 
-#----------------------------Neighbor-Joining Agglomerative Algorithm--------------------------------
+agg_clustering <- function(sequence) {
+  #inputs:
+  # sequence -- aligned dna sequence in phyDat
+  #ouput:
+  # tree in newick format
+  tips <- rownames(sequence)
+  forests <- make_newick(tips)
+  num_sites = ncol(sequence)
+  
+  if (length(forests) == 1) {
+    # Just one species
+    tree_string <- forests[1]
+  } else if (length(forests) == 2) {
+    # Just two species
+    # tree_string <-
+    #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    branch <- vi_codon_names(sequence, tips[1], tips[2])/num_sites
+    tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
+  } else{
+    #More than two species
+    
+    end <- length(forests) - 2
+    for (i in c(1:end)) {
+      #Do this subroutine n-2 times!
+      
+      x_names <-
+        read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+      y_names <-
+        read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+      #print(x_names)
+      #print(y_names)
+      
+      # max_dist <-
+      #   alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
+      #            matrix(sequence[y_names, ], nrow = length(y_names)))
+      max_dist <- vi_codon_names(sequence, x_names, y_names)
+      max_pair <- c(1, 2)
+      
+      #Subroutine for computing the closest two clusters
+      
+      for (k in 1:(length(forests) - 1)) {
+        for (j in (k + 1):length(forests)) {
+          x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
+          y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+          # dist <-
+          #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
+          dist <- vi_codon_names(sequence, x_names, y_names)
+          #cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+          if (dist < max_dist) {
+            max_dist <- dist
+            max_pair <- c(k, j)
+          }
+        }
+      }
+      
+      #Subroutine for joining the two forests
+      new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
+      forests <- forests[-max_pair]
+      forests <- c(forests, new_branch)
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
+      #print(new_tip)
+      tips <- tips[-max_pair]
+      tips <- c(tips, new_tip)
+    }
+    
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    branch <- alg_info(sequence, x_names, y_names)/num_sites
+    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
+  }
+  #print(tree_string)
+  return(tree_string)
+}
+
+#----------------------------Neighbor-Joining Agglomerative Algorithm------------------------------------------------------
 
 nj_agg <- function(sequence) {
   #inputs:
@@ -634,7 +723,7 @@ nj_agg <- function(sequence) {
 
 
 
-#-----------------------------Sequence Generation--------------------------------------
+#-----------------------------Sequence Generation---------------------------------------------------------------------------
 
 who_dat <- function(format = 2,
                     seqs = 5,

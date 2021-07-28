@@ -231,6 +231,7 @@ agg_clustering <- function(sequence) {
 ```
 
 Neighbor-joining style of agglomerative algorithm: 
+
 ```{r}
 nj_agg <- function(sequence) {
   #inputs:
