@@ -1,4 +1,4 @@
-#---------all the utility functions----------------------------------------------
+#---------General utility functions----------------------------------------------
 
 splitset <- function(n){
   #inputs:
@@ -56,27 +56,9 @@ is_additive <- function(tree){
               four_pt <- sort(c(d_ij + d_kl, d_ik + d_jl, d_il + d_jk), decreasing = TRUE)
               #print(four_pt)
               if( !(all.equal(four_pt[1], four_pt[2])) ){
-                #print(paste(i,j,k, l, sep = " "))
-                #print(four_pt)
-                #return(four_pt)
                 ret <- FALSE
               }
-              
-              # if((d_ij + d_kl) > max((d_ik + d_jl), (d_il + d_jk))){
-              #   ret <- FALSE
-              # }
-              # if((d_ik + d_jl) > max((d_ij + d_kl), (d_il + d_jk))){
-              #   ret <- FALSE
-              # }
-              # if((d_il + d_jk) > max((d_ij + d_kl), (d_ik + d_jl))){
-              #    ret <- FALSE
-              # }
-              # 
-              # if(!ret){
-              #   print(paste(i,j,k, l, sep = " "))
-              #   print(four_pt)
-              #   return(four_pt)
-              # }
+            
             }
           }
         }
@@ -85,6 +67,23 @@ is_additive <- function(tree){
   return(ret)
   }
 }  
+
+nuc_to_codon <- function(sequence){
+  padding <- ncol(sequence) %% 3 
+  #   
+  if(padding !=0 ){
+    for(i in 1:(3-padding)){
+      sequence <- cbind(sequence, rep("-", nrow(sequence)))
+    }
+  }
+  #   
+  codon_sequence <- matrix(splitseq(t(sequence)), nrow = nrow(sequence), ncol = ncol(sequence)/3, byrow = TRUE)
+  
+  rownames(codon_sequence) <- rownames(sequence)
+  return(codon_sequence)
+  
+}
+
 
 #----------------------------------Divisive Clustering----------------------------------
 
@@ -149,7 +148,7 @@ info_gain <- function(partition, seq) {
   part_line <- as.logical(partition)
   I <- c(0,0)
   site_data <- asplit(seq, 2)
-  #I <- sum(as.numeric(lapply(site_data, info_gain, partition = part_line)))
+  #I <- sum(as.numeric(mclapply(site_data, info_gain_site, partition = part_line)))
   I <- sum(apply(seq, 2, info_gain_site, partition = part_line))
   
   #print(paste("I =", I))
@@ -195,9 +194,9 @@ infotree <- function(sequence) {
     res <- mclapply(parts, info_gain, seq = sequence)
     max_val <- max(as.numeric(res))
     max_part <- part_matrix[which.max(as.numeric(res)), ]
-    #res <- apply(part_matrix, 1, max_info, seq = sequence)
-    #max_val <- max(res)
-    #max_part <- part_matrix[which.max(res), ]
+    # res <- apply(part_matrix, 1, info_gain, seq = sequence)
+    # max_val <- max(res)
+    # max_part <- part_matrix[which.max(res), ]
     branch <- vi(max_part, sequence)/num_sites
     cur_partition <- as.logical(max_part)
     
@@ -406,20 +405,6 @@ agg_clustering <- function(sequence) {
           }
         }
       }
-      
-      # dist <- function(x,y){
-      #   x_names <- read.tree(text = paste(x, ";", sep = ""))$tip.label
-      #   y_names <- read.tree(text = paste(y, ";", sep = ""))$tip.label
-      #   return(alg_info(sequence, x_names, y_names))
-      # }
-      # dist_v <- Vectorize(dist)
-      # dist_matrix <- outer(forests, forests, dist_v)
-      # dist_matrix <- map2_dbl(.x = forests, .y = forests, .f = dist)
-      # diag(dist_matrix) <- NA
-      # 
-      # max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
-      # max_dist <- dist_matrix[max_pair]
-      # print(max_pair)
       
       #Subroutine for joining the two forests
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")

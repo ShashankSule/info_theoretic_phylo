@@ -27,7 +27,7 @@ library("TreeTools")
 library("dplyr")
 library("parallel")
 library("adephylo")
-
+library("frequency")
 ```
 
 This is the place where we'll be testing and exploring our divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Look for more extensive documentation on the computing process [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md). 
@@ -68,8 +68,8 @@ num_sequence <- 100
 trees <- list(num_sequence)
 divisive <- list(num_sequence)
 sequences <- list(num_sequence)
-# agg_trees <- list(num_sequence)
-# nj_trees <- list(num_sequence)
+# agg_trees_nuc <- list(num_sequence)
+# nj_trees_nuc <- list(num_sequence)
 
 #read the original trees
 for(i in c(1:num_sequence)){
@@ -97,7 +97,7 @@ For a tree that doesn't work, the min edge to mutation ratio is 0.002945818 unde
 Let's compute some diagnostics! 
 
 ```{r, echo = TRUE, results= 'hide'}
-nj_trees <- sequences %>%
+nj_trees_nuc <- sequences %>%
             lapply(as.DNAbin) %>%
             lapply(dist.dna, model = "TN93", base.freq = c(0.34, 0.28, 0.13, 0.25)) %>%
             lapply(nj) %>%
@@ -107,7 +107,7 @@ nj_trees <- sequences %>%
 1. Robinson-Foulds distances: 
 
 ```{r include=FALSE}
-data <- data.frame(as.character(trees), as.character(divisive), as.character(nj_trees))
+data <- data.frame(as.character(trees), as.character(divisive), as.character(nj_trees_nuc))
 div_distance  <- mapply(RobinsonFoulds,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
        lapply(data$as.character.divisive., function(x) read.tree(text = as.character(x))))
@@ -116,7 +116,7 @@ div_distance  <- mapply(RobinsonFoulds,
 #        lapply(data$as.character.agglomerative., function(x) read.tree(text = as.character(x))))
 nj_distance <- mapply(RobinsonFoulds,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
-       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))))
+       lapply(data$as.character.nj_trees_nuc., function(x) read.tree(text = as.character(x))))
 # diagnostics <- data.frame(as.character(div_distance),
 #                           as.character(agg_distance),
 #                           as.character(nj_distance))
@@ -167,7 +167,7 @@ div_root  <- mapply(all.equal,
 #        use.edge.length = FALSE)
 nj_root <- mapply(all.equal,
        lapply(data$as.character.trees., function(x) read.tree(text = as.character(x))),
-       lapply(data$as.character.nj_trees., function(x) read.tree(text = as.character(x))),
+       lapply(data$as.character.nj_trees_nuc., function(x) read.tree(text = as.character(x))),
        use.edge.length = FALSE)
 ```
 
@@ -239,9 +239,9 @@ for(i in c(1:num_sequence)){
 # }
 # 
 for(i in c(1:num_sequence)){
-  # nj_met[i] <- is.ultrametric(read.tree(text = as.character(nj_trees[i])))
-  #nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees[i])), 1e-15)
-  nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees[i])))
+  # nj_met[i] <- is.ultrametric(read.tree(text = as.character(nj_trees_nuc[i])))
+  #nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees_nuc[i])), 1e-15)
+  nj_add[i] <- is_additive(read.tree(text = as.character(nj_trees_nuc[i])))
 }
 ```
 
@@ -289,14 +289,14 @@ Finally, we'll make a single plot with the branch lengths compared against the n
 
 ```{r}
 # i <- index[1]
-# nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+# nj_lengths <- read.tree(text = nj_trees_nuc[[i]])$edge.length
 #     d_lengths <- read.tree(text = divisive[[i]])$edge.length
 #     plot(nj_lengths, d_lengths)
 
 cl <- rainbow(length(index))
 
 for (i in index){
-    nj_lengths <- read.tree(text = nj_trees[[i]])$edge.length
+    nj_lengths <- read.tree(text = nj_trees_nuc[[i]])$edge.length
     d_lengths <- read.tree(text = divisive[[i]])$edge.length
     plot(nj_lengths[order(nj_lengths)], d_lengths[order(nj_lengths)])
 }
@@ -305,7 +305,8 @@ for (i in index){
 # Cummings et al 1995
 
 ```{r}
-names <- c("atpase6",
+names <- c("all-dna",
+           "atpase6",
 "atpase8",
 "coii",
 "coiii",
@@ -318,15 +319,21 @@ names <- c("atpase6",
 "nd5",
 "nd6")
 
-d_file_paths <- paste("./1995_trees/Divisive/", names, ".txt", sep = "")
-a_file_paths <- paste("./1995_trees/Agglomerative/", names, ".txt", sep = "")
+d_file_paths_nuc <- paste("./1995_trees/Nucleotide/Divisive/", names, ".txt", sep = "")
+a_file_paths_nuc <- paste("./1995_trees/Nucleotide/Agglomerative/", names, ".txt", sep = "")
+d_file_paths_cod <- paste("./1995_trees/Codon/Divisive/", names, ".txt", sep = "")
 
-d_trees <- d_file_paths %>%
+d_trees_nuc <- d_file_paths_nuc %>%
                   mclapply(readLines) %>%
                   mclapply(function(x) paste(x,";", sep = "")) %>%
                   mclapply(function(x) read.tree(text = x)) %>%
                   mclapply(ladderize)
-a_trees <- a_file_paths %>%
+# a_trees_nuc <- a_file_paths_nuc %>%
+#                   mclapply(readLines) %>%
+#                   mclapply(function(x) paste(x,";", sep = "")) %>%
+#                   mclapply(function(x) read.tree(text = x)) %>%
+#                   mclapply(ladderize)
+d_trees_cod <- d_file_paths_cod %>%
                   mclapply(readLines) %>%
                   mclapply(function(x) paste(x,";", sep = "")) %>%
                   mclapply(function(x) read.tree(text = x)) %>%
@@ -334,7 +341,9 @@ a_trees <- a_file_paths %>%
 
 ```
 
-1. Divisive Trees
+## Nucleotide Data
+
+1. Divisive
 
 ```{r}
 
@@ -342,25 +351,25 @@ gen_tree <- read.tree(text = "((Carp, Loach), (Xenopus, (Chicken, ((Mouse, Rat),
 plot(gen_tree)
 title("Original tree")
 
-#d_trees <- d_trees[-3]
+#d_trees_nuc <- d_trees_nuc[-3]
 for(i in c(1:12)){
   
-  plot(d_trees[[i]])
+  plot(d_trees_nuc[[i]])
   title(names[[i]])
   axisPhylo()
 }
 ```
 
 ```{r}
-d_distances <- as.numeric(mclapply(d_trees, function(x) RobinsonFoulds(gen_tree, x)))
-d_metricity <- as.numeric(mclapply(d_trees, is.ultrametric))
-d_additivity <- as.numeric(mclapply(d_trees, is_additive))
+d_distances <- as.numeric(mclapply(d_trees_nuc, function(x) RobinsonFoulds(gen_tree, x)))
+d_metricity <- as.numeric(mclapply(d_trees_nuc, is.ultrametric))
+d_additivity <- as.numeric(mclapply(d_trees_nuc, is_additive))
 hist(d_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
        "Robinson Foulds distances of divisive trees \ncomputed from C. et al '95 datasets to original")
 
-text(7.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(d_distances == 0))/12))
-text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/12))
-text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/12))
+text(7.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(d_distances == 0))/13))
+text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/13))
+text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/13))
 ```
 
 2. Agglomerative Trees 
@@ -369,10 +378,10 @@ text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivi
 plot(gen_tree)
 title("Original tree")
 
-#d_trees <- d_trees[-3]
+#d_trees_nuc <- d_trees_nuc[-3]
 for(i in c(1:12)){
   
-  plot(a_trees[[i]])
+  plot(a_trees_nuc[[i]])
   title(names[[i]])
   axisPhylo()
 }
@@ -380,15 +389,45 @@ for(i in c(1:12)){
 
 
 ```{r}
-a_distances <- as.numeric(mclapply(a_trees, function(x) RobinsonFoulds(gen_tree, x)))
-a_metricity <- as.numeric(mclapply(a_trees, is.ultrametric))
-a_additivity <- as.numeric(mclapply(a_trees, is_additive))
+a_distances <- as.numeric(mclapply(a_trees_nuc, function(x) RobinsonFoulds(gen_tree, x)))
+a_metricity <- as.numeric(mclapply(a_trees_nuc, is.ultrametric))
+a_additivity <- as.numeric(mclapply(a_trees_nuc, is_additive))
 hist(a_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
        "Robinson Foulds distances of agglomerative trees \ncomputed from C. et al '95 datasets to original")
 
 text(9.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(a_distances == 0))/12))
 text(9.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(a_metricity == 1))/12))
 text(9.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(a_additivity == 1))/12))
+```
+
+
+## Codon 
+
+1. Divisive Trees
+
+```{r}
+plot(gen_tree)
+title("Original tree")
+
+#d_trees_nuc <- d_trees_nuc[-3]
+for(i in c(1:12)){
+  
+  plot(d_trees_cod[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
+```
+
+```{r}
+d_distances <- as.numeric(mclapply(d_trees_cod, function(x) RobinsonFoulds(gen_tree, x)))
+d_metricity <- as.numeric(mclapply(d_trees_cod, is.ultrametric))
+d_additivity <- as.numeric(mclapply(d_trees_cod, is_additive))
+hist(d_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of divisive trees \ncomputed from C. et al '95 datasets to original")
+
+text(7.5,1.5, paste("Proportion of \nidentical to genome trees:", sum(as.numeric(d_distances == 0))/13))
+text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/13))
+text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/13))
 ```
 
 

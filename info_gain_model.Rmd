@@ -212,43 +212,78 @@ if(length(sequence) == 1){
 Instead of computing over nucleotides (and the gap character) we compute over codons, which are sequences of three nucleotides. First we preprocess data to get it into codon structure 
 
 ```{r}
-sequence <- ReadCharacters("coiii.nex")
+coiii <- ReadCharacters("coiii.nex")
 #sequence <- sequence[,1:6]
 ```
 
-
 ```{r}
-padding <- ncol(sequence) %% 3 
-
-if(padding !=0 ){
-   for(i in 1:padding){
-      sequence <- cbind(sequence, rep("-", nrow(sequence)))
-    }  
-}
-
-codon_sequence <- matrix(splitseq(t(sequence)), nrow = nrow(sequence), ncol = ncol(sequence)/3, byrow = TRUE)
-rownames(codon_sequence) <- rownames(sequence)
-codon_sequence
+codon_sequence <- nuc_to_codon(sequence)
 ```
 
-Let's clock the old against the new 
+```{r}
+infotree_codon(codon_sequence)
+```
 
 ```{r}
-partition <- as.logical(splitset(10)[232,])
+plot(read.tree(text = "((((Mouse:0.969465648854962, Rat:0.969465648854962):0.48521596741657, Seal:0.48521596741657):0.332850840215643, (Human:0.526589440710023, (Bovine:1.02290076335878, Whale:1.02290076335878):0.526589440710023):0.332850840215643):0.327669527655008, ((Carp:0.931297709923664, Loach:0.931297709923664):0.410400023685683, (Chicken:1.16030534351145, Xenopus:1.16030534351145):0.410400023685683):0.327669527655008);"))
+```
+
+```{r}
+infotree(sequence)
+```
+```{r}
+plot(read.tree(text = "((((Mouse:0.176844783715013, Rat:0.176844783715013):0.184497847948678, Seal:0.184497847948678):0.119266605483943, (Human:0.201166110257328, (Bovine:0.194656488549618, Whale:0.194656488549618):0.201166110257328):0.119266605483943):0.126995763556316, (Chicken:0.223670472654669, ((Carp:0.173027989821883, Loach:0.173027989821883):0.192135581199029, Xenopus:0.192135581199029):0.223670472654669):0.126995763556316);"))
+```
+
+Hmm. The module `info_gain_codon_site` is general (as in it doesn't matter what vector we hand to it for entropy calculation) so it can compute the information gain even for nucleotides. But it turns out that `info_gain_site` is quicker than `info_gain_codon_site` because `base.freq` is quicker than `table` at calculating frequencies. I wonder if what'll happen we hand-compute these frequencies...
+
+```{r}
+start <- Sys.time()
+#profvis({
+  
+A <- sequence[partition]
+B <- sequence[!partition]
+w_x <- length(A) / length(sequence)
+w_y <- length(B) / length(sequence)
+
+#compute p_x
+values_x <- as.matrix(unique(A))
+p_x <- apply(values_x, 2, function(x) sum(as.numeric(A == x))/length(A))
+
+#compute p_y
+values_y <- as.matrix(unique(B))
+p_y <- apply(values_y, 2, function(x) sum(as.numeric(B == x))/length(B))
+
+#compute p_xy
+values_xy <- as.matrix(unique(sequence))
+p_xy <- apply(values_xy, 2, function(x) sum(as.numeric(sequence == x))/length(sequence))
+
+#compute IG
+I <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  
+#})
+end <- Sys.time()
+# 
+
+print(end - start)
+```
+
+```{r}
+start <- Sys.time()
+I1 <- info_gain_site(sequence, partition)
+end <- Sys.time()
+print(end - start)
 ```
 
 
 ```{r}
 start <- Sys.time()
-infotree(sequence)
+I2 <- info_gain_codon_site(sequence, partition)
 end <- Sys.time()
 print(end - start)
 ```
 
-```{r}
-profvis({infotree(sequence)})
-
-```
+Nope! `base.freq` wins. 
 
 # Results
 
