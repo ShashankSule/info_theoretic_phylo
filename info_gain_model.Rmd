@@ -296,6 +296,107 @@ set <- c("Bovine", "Carp", "Chicken", "Human")
 names %in% set
 ```
 
+## Multiple maxima problem 
+
+Let's load up CO3 and run the initial partition with I values 
+
+```{r}
+sequence <- sequences[[105]]
+l = DIM(sequence)
+names = row.names(sequence)
+num_sites = ncol(sequence)
+cat("Partitioning...")
+part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+parts <- asplit(part_matrix,1)
+res <- mclapply(parts, info_gain, seq = sequence)
+max_val <- max(as.numeric(res))
+max_part <- part_matrix[which.max(as.numeric(res)), ]
+# res <- apply(part_matrix, 1, info_gain, seq = sequence)
+# max_val <- max(res)
+# max_part <- part_matrix[which.max(res), ]
+branch <- vi(max_part, sequence)/num_sites
+cur_partition <- as.logical(max_part)
+
+
+```
+
+```{r}
+plot(as.numeric(res))
+```
+```{r}
+max(as.numeric(res))
+```
+
+```{r}
+plot(as.numeric(res)[1:1024])
+```
+```{r}
+part_matrix
+```
+
+Swapping principle: 
+
+```{r}
+start_part <- rep(FALSE, 12)
+start_part[1] <- TRUE
+for(i in c(2:11)){
+  
+  cat("Current state: ", as.character(start_part), "\n")
+  
+  # Initialize partitions 
+  left_part <- start_part
+  right_part <- start_part
+  
+  # Change the team of the ith species 
+  left_part[12-i] <- TRUE
+  
+  # Compute the competing IG's 
+  left_IG <- info_gain(left_part, seq = sequence)
+  right_IG <- info_gain(right_part, seq = sequence)
+  
+  # Flip the bit or keep it the same
+  if(left_IG > right_IG){
+    start_part <- left_part
+  }
+  
+}
+
+
+```
+
+Reflection principle 
+
+```{r}
+current_part <- part_matrix 
+
+#while(nrow(current_part) > 1){
+  n <- nrow(current_part)
+  left_child <- current_part[1,]
+  middle_child <- current_part[(nrow(current_part)+1)/2, ]
+  right_child <- current_part[nrow(current_part),]
+  
+  left_info <- info_gain(left_child, sequence)
+  middle_info <- info_gain(middle_child, sequence)
+  right_info <- info_gain(right_child, sequence)
+  
+  winner <- c("left" = left_info, "middle" = middle_info, "right" = right_info) %>%
+            which.max %>%
+            names 
+  if(winner == "left"){
+    current_part <- current_part[1:((n+1)/2 - 1),]
+  } else if(winner == "right"){
+    current_part <- current_part[((n+1)/2 + 1):nrow(current_part),]
+  } else{
+    start_index <- (nrow(current_part)+1)/4 + 1
+    end_index <- 3*(nrow(current_part)+1)/4 - 1
+    current_part <- current_part[start_index:end_index, ]
+  }
+
+#}
+```
+
+
+
 
 # Results
 
