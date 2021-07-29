@@ -28,6 +28,7 @@ library("dplyr")
 library("parallel")
 library("adephylo")
 library("frequency")
+library("plot3D")
 ```
 
 This is the place where we'll be testing and exploring our divisive and agglomerative algorithms that make trees from aligned nucleotide sequences. Look for more extensive documentation on the computing process [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md). 
@@ -61,7 +62,7 @@ for(i in 1:n){
 }
 ```
 
-## Cummings et al 2003 parameters with TN93, 16 species, and 100 sites
+## Cummings et al 2003 parameters with TN93, 16 species, and 1000 sites
 
 ```{r echo=TRUE, results='hide', eval = FALSE}
 num_sequence <- 100
@@ -301,6 +302,112 @@ for (i in index){
     plot(nj_lengths[order(nj_lengths)], d_lengths[order(nj_lengths)])
 }
 ```
+
+## JC69 with 12 species and 2000 sites 
+
+Reading the data and making the trees: 
+
+```{r}
+num_sequence <- 105
+trees <- list(num_sequence)
+agglomerative <- list(num_sequence)
+divisive <- list(num_sequence)
+sequences <- list(num_sequence)
+# agg_trees_nuc <- list(num_sequence)
+# nj_trees_nuc <- list(num_sequence)
+
+#read the original trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul28/Trees/tree", i, ".txt", sep = "")
+  trees[[i]] <- readChar(filename, file.info(filename)$size)
+}
+
+#read the divisive trees 
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul28/divisive_trees/tree", i, ".txt", sep = "")
+  divisive[[i]] <- readChar(filename, file.info(filename)$size)
+}
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+
+#read the agglomerative trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul28/agglomerative_trees/tree", i, ".txt", sep = "")
+  agglomerative[[i]] <- readChar(filename, file.info(filename)$size)
+}
+agglomerative <- lapply(agglomerative,  function(x) paste(x,";", sep = ""))
+
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul28/Sequences/sequence", i, ".nex", sep = "")
+  sequences[[i]] <- ReadCharacters(filename)
+}
+
+ #make the neighbour joining trees 
+
+nj_trees_nuc <- sequences %>%
+            lapply(as.DNAbin) %>%
+            lapply(dist.dna, model = "JC69") %>%
+            lapply(nj) %>%
+            lapply(write.tree)
+
+```
+
+1. Robinson-Foulds Data: 
+
+```{r}
+data <- data.frame(Original = as.character(trees), 
+                   Agglomerative = as.character(agglomerative), 
+                   Divisive = as.character(divisive), 
+                   NJ = as.character(nj_trees_nuc))
+div_distance <- mapply(RobinsonFoulds,
+       lapply(data$Divisive, function(x) read.tree(text = as.character(x))),
+       lapply(data$Original, function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$Original, function(x) read.tree(text = as.character(x))),
+       lapply(data$Agglomerative, function(x) read.tree(text = as.character(x))))
+nj_distance <- mapply(RobinsonFoulds,
+       lapply(data$Original, function(x) read.tree(text = as.character(x))),
+       lapply(data$NJ, function(x) read.tree(text = as.character(x))))
+
+```
+
+```{r}
+layout(matrix(c(1,2,3,3), nrow = 2, ncol = 2))
+hist(div_distance)
+hist(agg_distance)
+hist(nj_distance)
+```
+
+```{r}
+dist_data <- data.frame(Divisive = div_distance, Agglomerative = agg_distance, NJ = nj_distance)
+summary(dist_data)
+```
+
+```{r}
+acc_div <- div_distance == 0
+acc_agg <- agg_distance == 0 
+acc_nj <- nj_distance == 0 
+acc_data <- data.frame(Divisive = div_distance, Agglomerative = agg_distance, NJ = nj_distance)
+table(acc_div)
+table(acc_agg)
+table(acc_nj)
+```
+
+```{r}
+plot(dist_data$NJ, dist_data$Divisive)
+```
+
+```{r}
+##  Create cuts:
+x_c <- cut(dist_data$NJ, 2)
+y_c <- cut(dist_data$Divisive, 2)
+
+##  Calculate joint counts at cut levels:
+z <- table(x_c, y_c)
+
+##  Plot as a 3D histogram:
+hist3D(z=z, border="black")
+```
+
 
 # Cummings et al 1995
 

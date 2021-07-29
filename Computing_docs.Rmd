@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
+#knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -77,29 +77,61 @@ e. On line 1257 add `fclose(fseqtree)`.
 Now the `evolverRandomTree` is ready. To make a random tree and generate a sequence from it, run `...src/evolverRandomTree 5 #PATHTODATFILE`. A sample `dat` file is given in `MCbaseRtree.dat`. In this case `#PATHTODATFILE` will be `paml4.8/MCbaseRtree.dat`. We have also written an R wrapper that `who_dat()` which writes a `.dat` file based on the model parameters you give it. Here is a sample, where we generate 100 blocks of sequence data for 10 species where each block corresponds to a tree randomly generated in the TN93 model. 
 
 ```{r echo=TRUE, eval=FALSE}
-#setwd("/Users/shashanksule/Documents/info_theoretic_phylo/")
-n <- 12
+setwd("/Users/shashanksule/Documents/info_theoretic_phylo/paml4.8")
+n <- 500
 trees <- list(n)
 sequences <- list(n)
 seeds <- list(n)
+back_trees <- list(n)
 for(i in 1:n){
   
   #Initialize the .dat file and store the seed
-  seeds[[i]] <- who_dat(seqs = 5,
-                sites = 1000, 
-                model = 6,
+  seeds[[i]] <- who_dat(seqs = 12,
+                sites = 2000, 
+                model = 0,
                 reps = 1,
-                parameters = "5 5", 
-                gamma = "0.5 4", 
+                parameters = "1", 
+                gamma = "1.0 0", 
                 mutation = 5.5,
-                equilibrium = "0.25 0.28 0.34 0.13",
+                equilibrium = "0.25 0.25 0.25 0.25",
                 spit_seed = TRUE)
   
   #Simulate the trees and the sequences
-  system("paml4.8/src/evolverRandomTree 5 paml4.8/MCbaseRTree.dat") 
+  system("src/evolverRandomTree 5 MCbaseRTree.dat", show.output.on.console = FALSE) 
+  #back_trees[[i]] <- ml_tree()
   trees[[i]] <- write.tree(read.nexus("mctrees.nex"))
   sequences[[i]] <- ReadCharacters("mc.nex")
 }
+```
+
+Checking the 2.7 percent rule: 
+
+```{r}
+Trees <- mclapply(trees, function(x) read.tree(text = x))
+Scale_Rats <- as.numeric(mclapply(Trees, function(x) min(x$edge.length)/5.5))
+```
+
+```{r}
+table(Scale_Rats > 0.027)
+```
+
+```{r}
+Trees <- trees[Scale_Rats > 0.027]
+Sequences <- sequences[Scale_Rats > 0.027]
+Seeds <- seeds[Scale_Rats > 0.027]
+```
+
+```{r}
+seq_file_names <- paste("./JC69_Jul28/Sequences/sequence",1:105,".nex", sep = "")
+tree_file_names <- paste("./JC69_Jul28/Trees/tree",1:105,".txt", sep = "")
+seed_file_names <- paste("./JC69_Jul28/Seeds/seed",1:105,".txt", sep = "")
+```
+
+
+```{r}
+mcmapply(function(x,y) write.nexus.data(x, file = y, interleaved = FALSE), Sequences, seq_file_names)
+mcmapply(function(x,y) write(x,file = y), Trees, tree_file_names)
+mcmapply(function(x,y) write(x,file = y), Seeds, seed_file_names)
 ```
 
 Or load sequence data
@@ -154,24 +186,30 @@ Some sample code to run `baseml`:
 ```{r}
 #TN93 model specs 
 
-trial_sequence <- sequences[[1]]
+trial_sequence <- sequences[[12]]
 trial_sequence <- as.numeric(as.factor(trial_sequence)) - matrix(1, nrow(trial_sequence), ncol(trial_sequence))
-species_names <- rownames(trial_sequence)
-opts <- paml.baseml.control(noisy = 1, 
-                            runmode = 2, 
-                            model = 6,
-                            Mgene = 0,
-                            ndata = 1, 
-                            clock = 1,  
-                            fix_kappa = 1,  
-                            kappa = c(5,5),  
-                            fix_alpha = 1,  
-                            alpha = 0.5,   
-                            Malpha = 0,  
-                            ncatG = 4,
-                            fix_blength = -1)
+species_names <- rownames(sequences[[12]])
+opts <- paml.baseml.control(noisy = 0,
+      verbose = 0,
+      runmode = 2,
+        model = 6,
+        Mgene = 0,
+        ndata = 1,
+        clock = 1,
+    fix_kappa = 1,
+        kappa = c(5,5),
+    fix_alpha = 1,
+        alpha = 0.5,
+       Malpha = 0,
+        ncatG = 4,
+        nparK = 0,
+        nhomo = 0,
+        getSE = 0,
+ RateAncestor = 0, 
+   Small_Diff = 7e-6,
+    cleandata = 1)
 
-paml_output <- paml.baseml(trial_sequence, seqname = rownames(sequences[[1]]), opts = opts)
+paml_output <- paml.baseml(trial_sequence, seqname = rownames(sequences[[12]]), opts = opts)
 ```
 
 Running the above code on a list of sequences: 
@@ -181,19 +219,34 @@ Running the above code on a list of sequences:
 
 trial_sequences <- mclapply(sequences, function(x) as.numeric(as.factor(x)) - matrix(1, nrow(x), ncol(x)))
 species_names <- rownames(sequences[[1]])
-opts <- paml.baseml.control(noisy = 1, 
-                            runmode = 2, 
-                            model = 6,
-                            Mgene = 0,
-                            ndata = 1, 
-                            clock = 1,  
-                            fix_kappa = 1,  
-                            kappa = c(5,5),  
-                            fix_alpha = 1,  
-                            alpha = 0.5,   
-                            Malpha = 0,  
-                            ncatG = 4)
+opts <- paml.baseml.control(noisy = 0,
+      verbose = 0,
+      runmode = 2,
+        model = 6,
+        Mgene = 0,
+        ndata = 1,
+        clock = 1,
+    fix_kappa = 1,
+        kappa = c(5,5),
+    fix_alpha = 1,
+        alpha = 0.5,
+       Malpha = 0,
+        ncatG = 4,
+        nparK = 0,
+        nhomo = 0,
+        getSE = 0,
+ RateAncestor = 0, 
+   Small_Diff = 7e-6,
+    cleandata = 1)
 paml_outputs <- mclapply(trial_sequences, paml.baseml, seqname = species_names, opts = opts)
+```
+
+```{r}
+putfile <- read_lines("./paml4.8/mlb")
+```
+
+```{r}
+
 ```
 
 

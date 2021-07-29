@@ -466,7 +466,6 @@ vi_codon_names <- function(seq_matrix, x_names, y_names) {
   return(VI)
 }
 
-
 agg_clustering_codons <- function(sequence) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
@@ -650,7 +649,7 @@ nj_agg <- function(sequence) {
 
 
 
-#-----------------------------Sequence Generation---------------------------------------------------------------------------
+#-----------------------------PAML Handling---------------------------------------------------------------------------
 
 who_dat <- function(format = 2,
                     seqs = 5,
@@ -703,11 +702,18 @@ who_dat <- function(format = 2,
       parameter_string,
       gamma_string,
       equilibrium_string, 
-      file = "paml4.8/MCbaseRTree.dat",
+      file = "MCbaseRTree.dat",
       sep = "\n\n",
       append= FALSE)
   
   if(spit_seed){
     return(seed)
   }
+}
+
+ml_tree <- function(){
+  system("src/baseml src/baseml.ctl")
+  system("tail mlb > tails.txt")
+  putfile <- read_lines("tails.txt")
+  return(putfile[[length(putfile)]])
 }
