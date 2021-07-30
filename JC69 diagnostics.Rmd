@@ -155,6 +155,42 @@ hist(agg_nj_distance, freq = TRUE)
 2. Branch Length Comparisons 
 
 ```{r}
+div_ids <- which(div_distance == 0)
 
+# original_lengths <-read.tree(text = trees[[div_ids[1]]])$edge.length
+#   d_lengths <- read.tree(text = data$Divisive[div_ids[1]])$edge.length
+#   plot(original_lengths, d_lengths)
+  
+og_tree <- read.tree(text = trees[[div_ids[1]]])
+div_tree <- read.tree(text = data$Divisive[div_ids[1]])
+# for(i in div_ids){
+#   original_lengths <-read.tree(text = trees[[i]])$edge.length
+#   d_lengths <- read.tree(text = data$Divisive[i])$edge.length
+#   points(original_lengths, d_lengths)
+# }
+```
+
+```{r}
+plot(og_tree)
+edgelabels(reorder(og_tree, order = "cladwise")$edge.length)
+```
+
+```{r}
+read.tree(text = trees[[div_ids[1]]])$edge.length
+```
+
+
+```{r}
+nj_ids <- which(div_distance == 0)
+
+original_lengths <-read.tree(text = trees[[nj_ids[1]]])$edge.length
+  d_lengths <- read.tree(text = data$NJ[nj_ids[1]])$edge.length
+  plot(original_lengths, d_lengths)
+  
+for(i in div_ids){
+  original_lengths <-read.tree(text = trees[[i]])$edge.length
+  d_lengths <- read.tree(text = data$NJ[i])$edge.length
+  points(original_lengths, d_lengths)
+}
 ```
 
