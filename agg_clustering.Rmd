@@ -6,6 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
 library("adegenet")
 library("ape")
 library("apTreeshape")
@@ -16,11 +17,18 @@ library("phangorn")
 library("phylobase")
 #library("phyloch")
 library("seqinr")
-#source("utilities.R")
+library("readr")
+source("utilities.R")
+library("progress")
 library("ggplot2")
+library("phyclust")
 library("TreeDist")
 library("TreeTools")
-library("phyclust")
+library("dplyr")
+library("parallel")
+library("adephylo")
+library("frequency")
+library("plot3D")
 ```
 
 Let's write the variation of information as $VI(X,Y) = 2H(X,Y) - H(X) + H(Y)$. We then approximate it through its "algorithmic" counterpart: $VI(X,Y) \approx 2H(X \cup Y) - H(X) - H(Y)$ Then the agglomerative algorithm based on Press et al. is as follows: 
@@ -627,16 +635,27 @@ rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
 
 ```
 
-```{r}
-press_tree_agg <- read.tree(text = paste(nj_agg(press_half), ";", sep=""))
-plot(press_tree_agg)
-```
 
 ```{r}
 coiii_data <- ReadCharacters("coiii.nex")
 coiii_tree_agg <- read.tree(text = paste(agg_clustering(coiii_data), ";", sep=""))
 plot(coiii_tree_agg)
 ```
+
+Press et al: 
+
+```{r}
+press_data <- as.character.DNAbin(read.dna("press_codes.phy"))
+press_half <- press_data[1:8,]
+```
+
+
+```{r}
+press_tree_agg <- read.tree(text = paste(agg_clustering(press_half, asym = TRUE), ";", sep=""))
+plot(press_tree_agg)
+```
+
+## Weighted algorithm
 
 # Other agglomerative methods 
 

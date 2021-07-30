@@ -165,7 +165,7 @@ vi <- function(partition, seq) {
 }
 
 
-infotree <- function(sequence) {
+infotree <- function(sequence, asym = FALSE) {
   #input:
   # sequence -- matrix of characters
   # output:
@@ -181,6 +181,7 @@ infotree <- function(sequence) {
   } else if (l == 2) {
     part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
     branch <- vi(part_matrix, sequence)/num_sites 
+    # asymmetric branch lengths mode
     tree_string <-
       paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
     cat("Done!\n")
@@ -204,11 +205,37 @@ infotree <- function(sequence) {
     #print(paste("The partition is ", cur_partition))
     left_sequence <- sequence[cur_partition, , drop = FALSE]
     right_sequence <- sequence[!cur_partition, , drop = FALSE]
-    left_string <- infotree(left_sequence)
-    right_string <- infotree(right_sequence)
+    left_string <- infotree(left_sequence, asym = asym)
+    right_string <- infotree(right_sequence, asym = asym)
     
-    tree_string <-
-      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
+    # asymmetric branch length mode
+    
+    if(asym){
+      left_branch <- (nrow(left_sequence)/nrow(sequence))
+      right_branch <- (nrow(right_sequence)/nrow(sequence))
+      # left_branch <- left_sequence %>% 
+      #                asplit(MARGIN = 2) %>%
+      #                lapply(table) %>%
+      #                lapply(function(x) x/nrow(left_sequence)) %>%
+      #                lapply(Entropy) %>%
+      #                as.numeric %>%
+      #                mean 
+      # right_branch <- right_sequence %>%
+      #                 asplit(MARGIN = 2) %>%
+      #                 lapply(table) %>%
+      #                 lapply(function(x) x/nrow(right_sequence)) %>%
+      #                 lapply(Entropy) %>%
+      #                 as.numeric %>%
+      #                 mean
+      tree_string <-
+        paste("(", left_string, ":", left_branch*branch, ", ", right_string, ":", right_branch*branch, ")", sep = "")  
+    } else{
+      tree_string <-
+        paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
+    }
+    
+    
+    
     
   }
   return(tree_string)
@@ -298,8 +325,15 @@ infotree_codon <- function(sequence) {
     left_string <- infotree_codon(left_sequence)
     right_string <- infotree_codon(right_sequence)
     
-    tree_string <-
-      paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
+    if(asym){
+      left_branch <- (nrow(left_sequence)/nrow(sequence))*branch
+      right_branch <- (nrow(right_sequence)/nrow(sequence))*branch
+      tree_string <-
+        paste("(", left_string, ":", left_branch, ", ", right_string, ":", right_branch, ")", sep = "")  
+    } else{
+      tree_string <-
+        paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
+    }
     
   }
   return(tree_string)
@@ -350,7 +384,7 @@ alg_info <- function(seq_matrix, x_names, y_names) {
   return(I_alg)
 }
 
-agg_clustering <- function(sequence) {
+agg_clustering <- function(sequence, asym = FALSE) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
   #ouput:
@@ -429,10 +463,20 @@ agg_clustering <- function(sequence) {
       max_dist <- dist_matrix[max_pair]
       
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
+      
+      if(asym){
+        x_opt <- read.tree(text = paste(forests[max_pair[1]], ";", sep = ""))$tip.label
+        y_opt <- read.tree(text = paste(forests[max_pair[2]], ";", sep = ""))$tip.label
+        left_branch <- (length(x_opt)/nrow(sequence))*(max_dist/num_sites)
+        right_branch <- (length(y_opt)/nrow(sequence))*(max_dist/num_sites)
+        new_tip <- paste("(", tips[max_pair[1]], ":", left_branch, ",", tips[max_pair[2]], ":", right_branch, ")", sep = "")
+      } else{
+        new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
+      }
+      
+      #print(new_tip)
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
-      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
-      #print(new_tip)
       tips <- tips[-max_pair]
       tips <- c(tips, new_tip)
       dist_matrix <- dist_matrix[-max_pair, -max_pair]
@@ -443,7 +487,15 @@ agg_clustering <- function(sequence) {
     x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
     y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
     branch <- alg_info(sequence, x_names, y_names)/num_sites
-    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
+    
+    if(asym){
+      left_branch <- (length(x_names)/nrow(sequence))*(max_dist/num_sites)
+      right_branch <- (length(y_names)/nrow(sequence))*(max_dist/num_sites)
+      tree_string <- paste("(", tips[1], ":", left_branch, ",", tips[2], ":", right_branch, ")", sep = "")
+    } else{
+      tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
+     }
+    
   }
   #print(tree_string)
   return(tree_string)

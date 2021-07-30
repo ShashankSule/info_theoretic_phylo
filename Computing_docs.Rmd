@@ -122,9 +122,9 @@ Seeds <- seeds[Scale_Rats > 0.027]
 ```
 
 ```{r}
-seq_file_names <- paste("./JC69_Jul28/Sequences/sequence",1:105,".nex", sep = "")
-tree_file_names <- paste("./JC69_Jul28/Trees/tree",1:105,".txt", sep = "")
-seed_file_names <- paste("./JC69_Jul28/Seeds/seed",1:105,".txt", sep = "")
+seq_file_names <- paste("./JC69_Jul30/Sequences/sequence",1:125,".nex", sep = "")
+tree_file_names <- paste("./JC69_Jul30/Trees/tree",1:125,".txt", sep = "")
+seed_file_names <- paste("./JC69_Jul30/Seeds/seed",1:125,".txt", sep = "")
 ```
 
 

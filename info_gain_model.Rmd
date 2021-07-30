@@ -396,7 +396,19 @@ for(i in c(1:end)){
 ```
 
 
+## Asymmetric Branch lengths
 
+```{r}
+press_data <- as.character.DNAbin(read.dna("press_codes.phy"))
+press_half <- press_data[9:16,]
+```
+
+
+
+```{r}
+press_tree_agg <- read.tree(text = paste(infotree(press_half, asym = TRUE), ";", sep=""))
+plot(press_tree_agg)
+```
 
 # Results
 
