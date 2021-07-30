@@ -617,11 +617,11 @@ nj_agg <- function(sequence) {
         x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
         y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
         dist <- alg_info(sequence, x_names, y_names)
-        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        #cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
         dist_matrix[k,j] <- dist
       }
     }
-    View(dist_matrix)
+    #View(dist_matrix)
     
     #Now repeat the process of joining clusters for n-2 times 
     for(i in c(1:end)){
@@ -640,7 +640,7 @@ nj_agg <- function(sequence) {
           }
         }
         u[k] <- sum/(l - 2)
-        print(u[k])
+        #print(u[k])
       }
       
       #find the minimum of the expression dij - ui - uj
@@ -651,7 +651,7 @@ nj_agg <- function(sequence) {
           val <- dist_matrix[k,j] - u[k] - u[j]
           x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
           y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
-          cat("Between group", k,"which is:", x_names,  "and group", j, "which is:", y_names, "current value is:", val, "\n")
+          #cat("Between group", k,"which is:", x_names,  "and group", j, "which is:", y_names, "current value is:", val, "\n")
           if(val < max_dist){
             max_dist <- val
             max_pair <- c(k,j)
@@ -689,7 +689,7 @@ nj_agg <- function(sequence) {
         d_xy <- alg_info(sequence, x_names, y_names)
         dist <- 0.5*(d_xz + d_yz - d_xy)
         dist_matrix[j,l-1] <- dist
-        cat("Distance between the pair updated: ", x_names, y_names, "/", z_names, "; d =", dist,"\n")
+        #cat("Distance between the pair updated: ", x_names, y_names, "/", z_names, "; d =", dist,"\n")
       }
       
     }

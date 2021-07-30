@@ -1,0 +1,160 @@
+---
+title: "A comparative test of some information theoretic algorithms for phylogenetic reconstruction"
+output:
+  github_document:
+    pandoc_args: --webtex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
+library("adegenet")
+library("ape")
+library("apTreeshape")
+library("BoSSA")
+library("diversitree")
+library("pegas")
+library("phangorn")
+library("phylobase")
+#library("phyloch")
+library("seqinr")
+library("readr")
+source("utilities.R")
+library("progress")
+library("ggplot2")
+library("phyclust")
+library("TreeDist")
+library("TreeTools")
+library("dplyr")
+library("parallel")
+library("adephylo")
+library("frequency")
+library("plot3D")
+```
+
+```{r}
+num_sequence <- 125
+trees <- list(num_sequence)
+agglomerative <- list(num_sequence)
+agglomerative_asym <- list(num_sequence)
+agglomerative_nj <- list(num_sequence)
+divisive <- list(num_sequence)
+divisive_asym <- list(num_sequence)
+sequences <- list(num_sequence)
+# agg_trees_nuc <- list(num_sequence)
+# nj_trees_nuc <- list(num_sequence)
+
+#read the original trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/Trees/tree", i, ".txt", sep = "")
+  trees[[i]] <- readChar(filename, file.info(filename)$size)
+}
+
+#read the asymmetric divisive trees 
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/divisive_trees_asym/tree", i, ".txt", sep = "")
+  divisive_asym[[i]] <- readChar(filename, file.info(filename)$size)
+}
+divisive_asym <- lapply(divisive_asym,  function(x) paste(x,";", sep = ""))
+
+#read the symmetric divisive trees 
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/divisive_trees_asym/tree", i, ".txt", sep = "")
+  divisive[[i]] <- readChar(filename, file.info(filename)$size)
+}
+divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
+
+#read the symmetric agglomerative trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/agglomerative_trees_sym/tree", i, ".txt", sep = "")
+  agglomerative[[i]] <- readChar(filename, file.info(filename)$size)
+}
+agglomerative <- lapply(agglomerative,  function(x) paste(x,";", sep = ""))
+
+#read the asymmetric agglomerative trees 
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/agglomerative_trees_asym/tree", i, ".txt", sep = "")
+  agglomerative_asym[[i]] <- readChar(filename, file.info(filename)$size)
+}
+agglomerative_asym <- lapply(agglomerative_asym,  function(x) paste(x,";", sep = ""))
+
+#read the nj agglomerative trees
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/agglomerative_trees_nj/tree", i, ".txt", sep = "")
+  agglomerative_nj[[i]] <- readChar(filename, file.info(filename)$size)
+}
+agglomerative_nj <- lapply(agglomerative_nj,  function(x) paste(x,";", sep = ""))
+
+#read the sequences 
+for(i in c(1:num_sequence)){
+  filename <- paste("./JC69_Jul30/Sequences/sequence", i, ".nex", sep = "")
+  sequences[[i]] <- ReadCharacters(filename)
+}
+
+#make the neighbour joining trees 
+
+nj_trees <- sequences %>%
+            lapply(as.DNAbin) %>%
+            lapply(dist.dna, model = "JC69") %>%
+            lapply(nj) %>%
+            lapply(write.tree)
+```
+
+1. Robinson Foulds Data and 
+
+```{r}
+data <- data.frame(Original = as.character(trees), 
+                   Agglomerative = as.character(agglomerative), 
+                   Agglomerative_NJ = as.character(agglomerative_nj),
+                   Divisive = as.character(divisive), 
+                   NJ = as.character(nj_trees))
+div_distance <- mapply(RobinsonFoulds,
+       lapply(data$Divisive, function(x) read.tree(text = as.character(x))),
+       lapply(data$Original, function(x) read.tree(text = as.character(x))))
+agg_distance <- mapply(RobinsonFoulds,
+       lapply(data$Original, function(x) read.tree(text = as.character(x))),
+       lapply(data$Agglomerative, function(x) read.tree(text = as.character(x))))
+agg_nj_distance <- mapply(RobinsonFoulds,
+       lapply(data$Original, function(x) read.tree(text = as.character(x))),
+       lapply(data$Agglomerative_NJ, function(x) read.tree(text = as.character(x))))
+nj_distance <- mapply(RobinsonFoulds,
+       lapply(data$Original, function(x) read.tree(text = as.character(x))),
+       lapply(data$NJ, function(x) read.tree(text = as.character(x))))
+```
+
+
+```{r}
+mean_div <- mean(div_distance)
+mean_agg <- mean(agg_distance)
+mean_agg_nj <- mean(agg_nj_distance)
+mean_nj <- mean(nj_distance)
+prop_div <- sum(as.numeric(div_distance) == 0)
+prop_agg <- sum(as.numeric(agg_distance) == 0)
+prop_agg_nj <- sum(as.numeric(agg_nj_distance) == 0)
+prop_nj <- sum(as.numeric(nj_distance) == 0)
+
+dist_data <- data.frame(Algorithm = c("Divisive","Agglomerative", "NJ Agglomerative","NJ"),
+                        RF_Mean_Distances = c(mean_div, mean_agg, mean_agg_nj, mean_nj),
+                        Counts = c(prop_div, prop_agg, prop_agg_nj, prop_nj))
+
+
+```
+
+
+```{r}
+show(dist_data)
+```
+
+```{r}
+layout(matrix(c(1,2,3,4), nrow = 2, ncol = 2))
+hist(div_distance, freq = TRUE)
+hist(agg_distance, freq = TRUE)
+hist(nj_distance, freq = TRUE)
+hist(agg_nj_distance, freq = TRUE)
+```
+
+2. Branch Length Comparisons 
+
+```{r}
+
+```
+

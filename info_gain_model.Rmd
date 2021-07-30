@@ -410,6 +410,39 @@ press_tree_agg <- read.tree(text = paste(infotree(press_half, asym = TRUE), ";",
 plot(press_tree_agg)
 ```
 
+## Reassigning branch lengths
+
+```{r}
+tree <- read.tree(text = "(((S2:0.366, S4:0.366):0.445020213082154, (S9:0.367091439224467, (S5:0.458, S10:0.458):0.734182878448934):0.667530319623231):0.244564938472181, (((S1:0.693, S3:0.693):0.490875921737079, (S7:0.612, S8:0.612):0.490875921737079):0.468008699472201, ((S6:0.43, S11:0.43):0.871430675756252, S12:0.435715337878126):0.351006524604151):0.342390913861054);")
+
+# Recover the left and right tree
+
+tree$edge.length <- NULL
+tree_names <- tree$tip.label
+left_tree <- subtrees(tree)[[2]]
+right_tree <- drop.tip(tree, left_tree$tip.label)
+
+branch = 0.5
+
+
+# right_tree_names <- as.factor(tree_names[!tree_names %in% left_tree$tip.label])
+# right_tree_index <- subtrees(tree) %>%
+#                     lapply(function(x) x$tip.label) %>%
+#                     lapply(function(x) identical(as.factor(x),right_tree_names)) %>%
+#                     as.logical %>%
+#                     which()
+# right_tree <- subtrees(tree)[[right_tree_index]]
+
+# Compute the branch lengths
+
+
+
+```
+
+```{r}
+plot(left_tree)
+```
+
 # Results
 
 ## Sequences of length 1 
