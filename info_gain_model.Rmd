@@ -301,7 +301,7 @@ names %in% set
 Let's load up CO3 and run the initial partition with I values 
 
 ```{r}
-sequence <- sequences[[105]]
+sequence <- sequences[[1]]
 l = DIM(sequence)
 names = row.names(sequence)
 num_sites = ncol(sequence)
@@ -321,18 +321,17 @@ cur_partition <- as.logical(max_part)
 ```
 
 ```{r}
-plot(as.numeric(res))
-```
-```{r}
-max(as.numeric(res))
+res_sub <- res
 ```
 
 ```{r}
-plot(as.numeric(res)[1:1024])
+plot(as.numeric(res_sub))
 ```
+
 ```{r}
-part_matrix
+res_sub <- res_sub[33:63]
 ```
+
 
 Swapping principle: 
 
@@ -368,8 +367,8 @@ Reflection principle
 
 ```{r}
 current_part <- part_matrix 
-
-#while(nrow(current_part) > 1){
+end <- log2(nrow(current_part) + 1) - 1
+for(i in c(1:end)){
   n <- nrow(current_part)
   left_child <- current_part[1,]
   middle_child <- current_part[(nrow(current_part)+1)/2, ]
@@ -382,6 +381,7 @@ current_part <- part_matrix
   winner <- c("left" = left_info, "middle" = middle_info, "right" = right_info) %>%
             which.max %>%
             names 
+  cat(winner, "\n")
   if(winner == "left"){
     current_part <- current_part[1:((n+1)/2 - 1),]
   } else if(winner == "right"){
@@ -392,7 +392,7 @@ current_part <- part_matrix
     current_part <- current_part[start_index:end_index, ]
   }
 
-#}
+}
 ```
 
 
