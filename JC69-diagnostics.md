@@ -1,134 +1,10 @@
----
-title: "A comparative test of some information theoretic algorithms for phylogenetic reconstruction"
-output:
-  github_document:
-    pandoc_args: --webtex
----
+A comparative test of some information theoretic algorithms for
+phylogenetic reconstruction
+================
 
-```{r setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
-knitr::opts_knit$set(echo = FALSE)
-#knitr::opts_knit$set(include = FALSE)
-knitr::opts_knit$set(results = 'hide')
-library("adegenet")
-library("ape")
-library("apTreeshape")
-library("BoSSA")
-library("diversitree")
-library("pegas")
-library("phangorn")
-library("phylobase")
-#library("phyloch")
-library("seqinr")
-library("readr")
-source("utilities.R")
-library("progress")
-library("ggplot2")
-library("phyclust")
-library("TreeDist")
-library("TreeTools")
-library("dplyr")
-library("parallel")
-library("adephylo")
-library("frequency")
-library("plot3D")
-```
+# Robinson Foulds distances
 
-
-```{r, results='hide', echo =FALSE}
-num_sequence <- 125
-trees <- list(num_sequence)
-agglomerative <- list(num_sequence)
-agglomerative_asym <- list(num_sequence)
-agglomerative_nj <- list(num_sequence)
-divisive <- list(num_sequence)
-divisive_asym <- list(num_sequence)
-sequences <- list(num_sequence)
-# agg_trees_nuc <- list(num_sequence)
-# nj_trees_nuc <- list(num_sequence)
-
-#read the original trees
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/Trees/tree", i, ".txt", sep = "")
-  trees[[i]] <- readChar(filename, file.info(filename)$size)
-}
-
-#read the asymmetric divisive trees 
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/divisive_trees_asym/tree", i, ".txt", sep = "")
-  divisive_asym[[i]] <- readChar(filename, file.info(filename)$size)
-}
-divisive_asym <- lapply(divisive_asym,  function(x) paste(x,";", sep = ""))
-
-#read the symmetric divisive trees 
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/divisive_trees_sym/tree", i, ".txt", sep = "")
-  divisive[[i]] <- readChar(filename, file.info(filename)$size)
-}
-divisive <- lapply(divisive,  function(x) paste(x,";", sep = ""))
-
-#read the symmetric agglomerative trees
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/agglomerative_trees_sym/tree", i, ".txt", sep = "")
-  agglomerative[[i]] <- readChar(filename, file.info(filename)$size)
-}
-agglomerative <- lapply(agglomerative,  function(x) paste(x,";", sep = ""))
-
-#read the asymmetric agglomerative trees 
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/agglomerative_trees_asym/tree", i, ".txt", sep = "")
-  agglomerative_asym[[i]] <- readChar(filename, file.info(filename)$size)
-}
-agglomerative_asym <- lapply(agglomerative_asym,  function(x) paste(x,";", sep = ""))
-
-#read the nj agglomerative trees
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/agglomerative_trees_nj/tree", i, ".txt", sep = "")
-  agglomerative_nj[[i]] <- readChar(filename, file.info(filename)$size)
-}
-agglomerative_nj <- lapply(agglomerative_nj,  function(x) paste(x,";", sep = ""))
-
-#read the sequences 
-for(i in c(1:num_sequence)){
-  filename <- paste("./JC69_Jul30/Sequences/sequence", i, ".nex", sep = "")
-  sequences[[i]] <- ReadCharacters(filename)
-}
-
-#make the neighbour joining trees 
-
-nj_trees <- sequences %>%
-            lapply(as.DNAbin) %>%
-            lapply(dist.dna, model = "JC69") %>%
-            lapply(nj) %>%
-            lapply(write.tree)
-```
-
-# Robinson Foulds distances 
-
-```{r, results = 'hide', echo=FALSE}
-data <- data.frame(Original = as.character(trees), 
-                   Agglomerative = as.character(agglomerative), 
-                   Agglomerative_Asym = as.character(agglomerative_asym),
-                   Agglomerative_NJ = as.character(agglomerative_nj),
-                   Divisive = as.character(divisive), 
-                   Divisive_Asym = as.character(divisive_asym),
-                   NJ = as.character(nj_trees))
-div_distance <- mapply(RobinsonFoulds,
-       lapply(data$Divisive, function(x) read.tree(text = as.character(x))),
-       lapply(data$Original, function(x) read.tree(text = as.character(x))))
-agg_distance <- mapply(RobinsonFoulds,
-       lapply(data$Original, function(x) read.tree(text = as.character(x))),
-       lapply(data$Agglomerative, function(x) read.tree(text = as.character(x))))
-agg_nj_distance <- mapply(RobinsonFoulds,
-       lapply(data$Original, function(x) read.tree(text = as.character(x))),
-       lapply(data$Agglomerative_NJ, function(x) read.tree(text = as.character(x))))
-nj_distance <- mapply(RobinsonFoulds,
-       lapply(data$Original, function(x) read.tree(text = as.character(x))),
-       lapply(data$NJ, function(x) read.tree(text = as.character(x))))
-```
-
-
-```{r, echo = FALSE}
+``` r
 mean_div <- mean(div_distance)
 mean_agg <- mean(agg_distance)
 mean_agg_nj <- mean(agg_nj_distance)
@@ -142,15 +18,19 @@ dist_data <- data.frame(Algorithm = c("Divisive","Agglomerative", "NJ Agglomerat
                         Mean_RF = c(mean_div, mean_agg, mean_agg_nj, mean_nj),
                         Props = c(prop_div, prop_agg, prop_agg_nj, prop_nj))
 colnames(dist_data) <- c("Algorithm", "Mean RF dist.", "Prop. of RF = 0")
-
 ```
 
-
-```{r echo=FALSE, results='markup'}
+``` r
 show(dist_data)
 ```
 
-```{r echo=FALSE, results='markup'}
+    ##          Algorithm Mean RF dist. Prop. of RF = 0
+    ## 1         Divisive         5.648           0.024
+    ## 2    Agglomerative         8.640           0.008
+    ## 3 NJ Agglomerative         6.960           0.016
+    ## 4               NJ         3.008           0.248
+
+``` r
 layout(matrix(c(1,2,3,4), nrow = 2, ncol = 2))
 hist(div_distance, main = "Hisogram of Divisive RF Distances")
 hist(agg_distance, main = "Histogram of Agglomerative RF Distances")
@@ -158,11 +38,13 @@ hist(nj_distance, main = "Histogram of NJ-Agglomerative RF Distances")
 hist(agg_nj_distance, main = "Histogram of NJ RF distances")
 ```
 
-# Branch Length Comparisons 
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
-a. Divisive Trees 
+# Branch Length Comparisons
 
-```{r echo=FALSE}
+1.  Divisive Trees
+
+``` r
 div_ids <- which(div_distance == 0)
 
 # original_lengths <-read.tree(text = trees[[div_ids[1]]])$edge.length
@@ -190,19 +72,24 @@ div_dist_corr <- rbind(div_dist_corr,
 }
 ```
 
-```{r echo=FALSE, results= 'markup'}
+``` r
 ggplot(div_dist_corr, aes(x=Originals, y=Divisive))+
   geom_point(size = 4, alpha = 0.4) + 
   #xlim(c(0,6)) + 
   #ylim(c(0,1.0)) + 
   xlab("Branch Length of Original tree") + 
   ylab("Branch Length of Divisive Tree (Bits per site)")
+```
+
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
   #geom_smooth()
 ```
 
 ## Asymmetric Divisive Trees
 
-```{r echo=FALSE}
+``` r
 div_ids <- which(div_distance == 0)
 
 # original_lengths <-read.tree(text = trees[[div_ids[1]]])$edge.length
@@ -230,21 +117,26 @@ div_dist_corr <- rbind(div_dist_corr,
 }
 ```
 
-```{r echo=FALSE, results=}
+``` r
 ggplot(div_dist_corr, aes(x=Originals, y=Divisive))+
   geom_point(size = 4, alpha = 0.4) + 
   #xlim(c(0,6)) + 
   #ylim(c(0,1.0)) + 
   xlab("Branch Length of Original tree") + 
   ylab("Branch Length of Asym. Divisive Tree (Bits per site)")
+```
+
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
   #geom_smooth()
 ```
 
-b. Agglomerative Trees 
+2.  Agglomerative Trees
 
 ## Symmetric Agglomerative Trees
 
-```{r echo=FALSE}
+``` r
 agg_ids <- which(agg_distance == 0)
 
 # original_lengths <-read.tree(text = trees[[agg_ids[1]]])$edge.length
@@ -272,7 +164,7 @@ agg_dist_corr <- rbind(agg_dist_corr,
 }
 ```
 
-```{r echo=FALSE, results='markup'}
+``` r
 ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   geom_point(size = 4, alpha = 0.4) + 
   xlim(c(0,6)) + 
@@ -281,7 +173,11 @@ ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   ylab("Branch Length of Agglomerative Tree (Bits per site)")
 ```
 
-```{r echo=FALSE}
+    ## Warning: Removed 2 rows containing missing values (geom_point).
+
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
 agg_ids <- which(agg_distance == 0)
 
 # original_lengths <-read.tree(text = trees[[agg_ids[1]]])$edge.length
@@ -309,7 +205,7 @@ agg_dist_corr <- rbind(agg_dist_corr,
 }
 ```
 
-```{r echo=FALSE, results='markup'}
+``` r
 ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   geom_point(size = 4, alpha = 0.4) + 
   xlim(c(0,6)) + 
@@ -318,9 +214,13 @@ ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   ylab("Branch Length of Asym. Agglomerative Tree (Bits per site)")
 ```
 
+    ## Warning: Removed 2 rows containing missing values (geom_point).
+
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
 ## Neighbour-Joining agglomerative tree
 
-```{r echo=FALSE}
+``` r
 agg_ids <- which(agg_nj_distance == 0)
 
 # original_lengths <-read.tree(text = trees[[agg_ids[1]]])$edge.length
@@ -348,7 +248,7 @@ agg_dist_corr <- rbind(agg_dist_corr,
 }
 ```
 
-```{r echo=FALSE, results='markup'}
+``` r
 ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   geom_point(size = 4, alpha = 0.4) + 
   #xlim(c(0,6)) + 
@@ -357,9 +257,11 @@ ggplot(agg_dist_corr, aes(x=Originals, y=agglomerative))+
   ylab("Branch Length of NJ Agglomerative Tree (Bits per site)")
 ```
 
-3. Tree properties (ultrametricity, additivity, rooting accuracy)
+![](JC69-diagnostics_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
-```{r echo=FALSE}
+3.  Tree properties (ultrametricity, additivity, rooting accuracy)
+
+``` r
 div_root  <- mapply(all.equal,
        lapply(data$Original, function(x) read.tree(text = as.character(x))),
        lapply(data$Divisive, function(x) read.tree(text = as.character(x))),
@@ -387,7 +289,7 @@ nj_root <- mapply(all.equal,
 rooting <- c(1, agg_root, agg_asym_root, agg_nj_root, div_root, div_asym_root, nj_root)
 ```
 
-```{r echo=FALSE}
+``` r
 og_metricity <- data$Original %>%
                 lapply(function(x) read.tree(text = as.character(x))) %>%
                 lapply(function(x) is.ultrametric(x, tol = 1e-06)) %>% as.numeric %>% mean
@@ -414,7 +316,7 @@ nj_metricity <- data$NJ %>%
 metricity <- c(1, agg_metricity, agg_asym_metricity, agg_nj_metricity, div_metricity, div_asym_metricity, nj_metricity)
 ```
 
-```{r echo=FALSE}
+``` r
 og_additivity <- data$Original %>%
                 lapply(function(x) read.tree(text = as.character(x))) %>%
                 lapply(is_additive) %>% as.numeric %>% mean
@@ -440,14 +342,22 @@ nj_additivity <- data$NJ %>%
 additivity <- c(1, agg_additivity, agg_asym_additivity, agg_nj_additivity, div_additivity, div_asym_additivity, nj_additivity)
 ```
 
-```{r echo=FALSE}
+``` r
 Tree_data <- data.frame(Algorithm = c("Original","Agglomerative", "Asymmetric Agglomerative","NJ Agglomerative", "Divisive", "Asymmetric Divisive", "NJ"),
                         Rooting = rooting,
                         Ultrametricity = metricity, 
                         Additivity = additivity)
 ```
 
-```{r results = 'markup'}
+``` r
 print(Tree_data)
 ```
 
+    ##                  Algorithm Rooting Ultrametricity Additivity
+    ## 1                 Original       1              1          1
+    ## 2            Agglomerative       0              0          1
+    ## 3 Asymmetric Agglomerative       0              0          1
+    ## 4         NJ Agglomerative       0              0          1
+    ## 5                 Divisive       0              0          1
+    ## 6      Asymmetric Divisive       0              0          1
+    ## 7                       NJ       0              0          1
