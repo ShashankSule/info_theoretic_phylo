@@ -39,7 +39,7 @@ The information gain model of computing bifurcations/splits/partitions is as fol
 
 $$\begin{equation}
 I(Y, \eta) = H(Y) - H(X_\eta \mid \eta) = H(Y) - pH(X_1) - (1-p)H(X_2) \approx H(x_0) - \frac{x_1}{x_0}H(X_1) - \frac{x_2}{x_0}H(X_2)
-\end{equation} $$
+\end{equation}$$
 
 We pick the partition $\mathcal{P}$ that maximizes the information gain on the data $x_0$. 
 

@@ -45,11 +45,9 @@ is then
 
 ![\\begin{equation}
 I(Y, \\eta) = H(Y) - H(X\_\\eta \\mid \\eta) = H(Y) - pH(X\_1) - (1-p)H(X\_2) \\approx H(x\_0) - \\frac{x\_1}{x\_0}H(X\_1) - \\frac{x\_2}{x\_0}H(X\_2)
-\\end{equation} 
-(\\\#eq:infogain)](https://latex.codecogs.com/png.latex?%5Cbegin%7Bequation%7D%0AI%28Y%2C%20%5Ceta%29%20%3D%20H%28Y%29%20-%20H%28X_%5Ceta%20%5Cmid%20%5Ceta%29%20%3D%20H%28Y%29%20-%20pH%28X_1%29%20-%20%281-p%29H%28X_2%29%20%5Capprox%20H%28x_0%29%20-%20%5Cfrac%7Bx_1%7D%7Bx_0%7DH%28X_1%29%20-%20%5Cfrac%7Bx_2%7D%7Bx_0%7DH%28X_2%29%0A%5Cend%7Bequation%7D%20%0A%28%5C%23eq%3Ainfogain%29 "\begin{equation}
+\\end{equation}](https://latex.codecogs.com/png.latex?%5Cbegin%7Bequation%7D%0AI%28Y%2C%20%5Ceta%29%20%3D%20H%28Y%29%20-%20H%28X_%5Ceta%20%5Cmid%20%5Ceta%29%20%3D%20H%28Y%29%20-%20pH%28X_1%29%20-%20%281-p%29H%28X_2%29%20%5Capprox%20H%28x_0%29%20-%20%5Cfrac%7Bx_1%7D%7Bx_0%7DH%28X_1%29%20-%20%5Cfrac%7Bx_2%7D%7Bx_0%7DH%28X_2%29%0A%5Cend%7Bequation%7D "\begin{equation}
 I(Y, \eta) = H(Y) - H(X_\eta \mid \eta) = H(Y) - pH(X_1) - (1-p)H(X_2) \approx H(x_0) - \frac{x_1}{x_0}H(X_1) - \frac{x_2}{x_0}H(X_2)
-\end{equation} 
-(\#eq:infogain)")
+\end{equation}")
 
 We pick the partition
 ![\\mathcal{P}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D "\mathcal{P}")
@@ -193,8 +191,8 @@ asymmetrically by weighting the
 ![VI](https://latex.codecogs.com/png.latex?VI "VI") according to the
 weight
 ![p \\approx \|x\_1\|/\|x\_0\|](https://latex.codecogs.com/png.latex?p%20%5Capprox%20%7Cx_1%7C%2F%7Cx_0%7C "p \approx |x_1|/|x_0|")
-from `\@ref(eq:infogain)`. With the branch length modification,
-`infotree` is the following algorithm:
+from Equation 1. With the branch length modification, `infotree` is the
+following algorithm:
 
     ALGORITHM infotree
 
@@ -390,9 +388,9 @@ algorithm!
 plot(read.tree(text = paste(infotree(as.character.DNAbin(as.DNAbin(seqs))),";", sep = "")))
 ```
 
-    ## Partitioning...Partitioning...Done!
-    ## Done!
     ## Partitioning...Partitioning...Partitioning...Done!
+    ## Partitioning...Done!
+    ## Partitioning...Done!
 
 ![](info_gain_model_files/figure-gfm/unnamed-chunk-5-1.png)<!-- --> This
 tree, while not very informative, is the most sensible given the
@@ -446,7 +444,7 @@ end <- Sys.time()
 print(end - start)
 ```
 
-    ## Time difference of 0.1436241 secs
+    ## Time difference of 0.1390619 secs
 
 It takes about 0.2 seconds for each run, so over 32767 runs it takes
 about 6553 seconds, which is about a 110 minutes, if we do these
@@ -507,7 +505,7 @@ end <- Sys.time()
 print(end - start)
 ```
 
-    ## Time difference of 0.0242641 secs
+    ## Time difference of 0.04480696 secs
 
 ``` r
 start <- Sys.time()
@@ -516,4 +514,4 @@ end <- Sys.time()
 print(end - start)
 ```
 
-    ## Time difference of 0.003212929 secs
+    ## Time difference of 0.004918098 secs

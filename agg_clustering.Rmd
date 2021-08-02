@@ -31,7 +31,9 @@ library("frequency")
 library("plot3D")
 ```
 
-Let's write the variation of information as $VI(X,Y) = 2H(X,Y) - H(X) + H(Y)$. We then approximate it through its "algorithmic" counterpart: $VI(X,Y) \approx 2H(X \cup Y) - H(X) - H(Y)$ Then the agglomerative algorithm based on Press et al. is as follows: 
+# A simple agglomerative algorithm 
+
+Let's write the variation of information as $VI(X,Y) = 2H(X,Y) - H(X) + H(Y)$. We then approximate it through its "algorithmic" counterpart: $VI(X,Y) \approx 2H(X \sqcup Y) - H(X) - H(Y)$ Then the agglomerative algorithm based on Press et al. is as follows: 
 
 1. Maintain an active `char` list `forests` denoting tips of the tree
 2. Parse through `forests` and find the two closest clusters 
@@ -237,6 +239,7 @@ agg_clustering <- function(sequence) {
   return(tree_string)
 }
 ```
+
 
 Neighbor-joining style of agglomerative algorithm: 
 
