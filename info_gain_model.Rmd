@@ -1,6 +1,5 @@
 ---
 title: "Information gain model for trees"
-author: "Shashank Sule"
 date: "14/06/2021"
 output:
   github_document:
@@ -34,518 +33,340 @@ library("profvis")
 
 # Introduction
 
-The information gain-based divisive algorithm draws closely from the binary classification problem in decision tree learning. Recall that the binary classification problem goes as follows. We are given binary data $Z = \{z_1, \ldots, z_n}$ where each data is point $i$ is associated with features $\{1, \ldots, k}$ and every feature $j$ has a binary label $f_k$. Now given a new data point $i+1$ we must classify its outcome $z_{i+1}$ based on $Z$ and the features $f$. Such problems are ubiquitous in daily life. For example, given that we know the temperature, humidity, and average wind speed of each day in the previous week (and whether it rained or not on those days) we might want to figure out whether it will rain today given that we know today's data. Here the features are temperature, humidity, and wind speed (each taking a label of HIGH or LOW), and the binary data $Z$ is $YES$ or $NO$. The decision tree approach solves this problem by (greedily) constructing a rooted dichotomous tree based on the most "informative" labels. At each node of the tree, we partition the data according to a feature $f^*$ that optimizes a gain function $J$. This leads to a "question-answer" style of predicting the outcome of the data point $i+1$, where we query each feature of the point in a particular order and given the answers make a binary decision. Going back to the weather example, if all the days with the humidity label $HIGH$ were associated with the outcome $YES$ then it makes most sense to ask first if today's humidity is going to be $HIGH$ (and then if it was going to be hot, windy, and so on).  
+Let $x_0$ be a set of OTU's and let $T(x_0)$ be a binary tree associated with $x_0$. If $|x_0| = n$ then the number of bifurcations in $T(\mathcal{S})$ is $n-1$ so the task is to figure out the bifurcations of $T(\mathcal{S})$ (or more directly, figure out a set of sensible bifurcations $B_i$ to make a tree with $\mathcal{S}$ as tips or leaves). 
 
-Now there are two releThe dvLet $\mathcal{S}$ be a set of OTU's and let $T(\mathcal{S})$ be a binary tree associated with $\mathcal{S}$. If $|\mathcal{S}| = n$ then the number of bifurcations in $T(\mathcal{S})$ is $n-1$ so the task is to figure out the bifurcations of $T(\mathcal{S})$ (or more directly, figure out a set of sensible bifurcations $B_i$ to make a tree with $\mathcal{S}$ as tips or leaves). In APE lingo, these bifurcations are called "splits". 
+The information gain model of computing bifurcations/splits/partitions is as follows: Let $\mathcal{P} = x_1 \sqcup x_2$ be a partition of $x_0$. If $x_1$ are realizations of a random variable $X_1$ and $x_2$ are realizations of a random variable $X_2$, then $x_0$ is the set of realizations of a random variable $Y = X_\eta$ where $P(\eta = 1) = p$ and $P(\eta = 2) = 1-p$. The information gain of $\mathcal{P}$ is then 
 
-The information gain model of bifurcations/splits/partitions is as follows: Let $\mathcal{S}$ be a set of OTU's and $\mathcal{P} = A \sqcup B$ any partition. Supposing that $A$ are realizations of a random process $X$ and $B$ are realizations of a random process $Y$, then the information of $\mathcal{P}$ is $J(\mathcal{P}) := J(X,Y)$ where $J$ is some meaningful information theoretic function of $X$ and $Y$.
+$$\begin{equation}
+I(Y, \eta) = H(Y) - H(X_\eta \mid \eta) = H(Y) - pH(X_1) - (1-p)H(X_2) \approx H(x_0) - \frac{x_1}{x_0}H(X_1) - \frac{x_2}{x_0}H(X_2)
+\end{equation} $$
 
-# Some comments about the choice of $J$
+We pick the partition $\mathcal{P}$ that maximizes the information gain on the data $x_0$. 
 
-Of course, this is a very general model but it's worth spending some time about the choices of $J$. So far we've come up with the following: 
+This strategy of picking the information gain-maximizing partition closely follows decision tree learning in binary classification, where at each node the data is classified according to the labels of the information gain maximizing feature. In such a case the split at a node is induced by the labels of the optimal feature $f^* = \underset{\text{feature}}{argmax} I (data, feature)$. Of course, in our case, when each OTU is represented by a nucleotide (or codon) sequence, we assume that we don't have feature-level binary data so we search over all partitions of $x_0$ instead. Moreover, this strategy of making a tree is divisive or "top-down": at each stage we take data $x_0$ and split it into two clusters $x_1$ and $x_2$. We obtain a tree by repeating this splitting process on $x_1$ and $x_2$ recursively. In summary the algorithm is as follows: 
 
-1. Information gain 
+```
+ALGORITHM infotree
 
-This model is used to make decision trees from given data $\mathcal{S}$ containing data from a set of classes (typically it's a binary set). Let $A \sqcup B = \mathcal{S}$ and $P_A = |A|/|\mathcal{S}|$. Then let $Z \sim X_\eta$ where $\eta = 1$ with probability $P_A$ and $2$ with probability $1 - P_A$. Considering $\mathcal{S}$ as a set of samples from $Z$ we can actually compute $I(Z;\eta) = H(Z) - H(Z \mid \eta) = H(\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)$. This is the corrected version of the formula at the bottom of page 3 in `info_theory_ideas`. Using the notation of $x_i$ from this document, we may also write it as $I(x_0; (x_1, x_2)) = H(x_0) - \alpha H(x_1) - (1-\alpha)H(x_2)$ where $\alpha$ is the proportion of taxa in the partition $x_1$. Here the expression "$(x_1, x_2)$" is to be understood as the _tree_ $(x_1, x_2)$ in Newick and not the joint distribution $(x_1, x_2)$. We'll have to be careful about this notation from now on. But computationally this strategy gives the most sensible trees for the simple case of $n$ sequences of length 1. 
+1. Start with data $x_0$
+2. If $x_0$ has one or two species, return the trees (OTU 1) or (OTU 1, OTU 2) respectively. 
+3. If $x_0$ has three more more species do: 
+   
+   Partition $x_0$ into $x_1, x_2 = \text{argmax}_{(a,b)}\,I(x_0;(a,b))$
+   
+   Compute: 
+   
+   a. Left tree = infotree(x_1)
+   b. Right tree = infotree(x_2)
+   
+   Return the tree (Left tree, Right tree)
+```
 
-2. Symmetrised cross entropy
+# Computing IG
 
-Let $p$ be the distribution of $x_1$ and $q$ the distribution of $x_2$. Then the cross entropy is $H(p,q) := -\sum_{x}p(x)\log_2 q(x)$. Note that $H(p,q) \neq H(q,p)$ in general so we let $J(X,Y) = J(x_1, x_2) = H(p,q) + H(q,p)$. The cross entropy is a value that compares how far $q$ is from $p$ and in source coding quantifies the minimum expected code length when the underlying probability distribution of the source is misunderstood as $q$ instead of $p$. 
+To implement the above algorithm we would need to compute the information gain $I(x_0; (x_1,x_2))$ which in turn involves computing the (empirical) entropies $H(x_0)$, $H(x_1)$, and $H(x_2)$. In the case where $x_0$ is sequence data of length 1 (essentially all we have is each species represented by a single nucleotide), we assume that $X_i$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $x_i$ is the set of realizations of $X_i$. Then we can compute the entropies $H(x_i)$ as 
 
-# Algorithm based on Information Gain
+$$H(x_i) = -\sum_{j \in {a,c,g,t}}log_2\Big(\frac{|j|}{|x_i|}\Big)\frac{|j|}{|x_i|}$$
 
-In the case where $\mathcal{S}$ is aligned molecular sequence data of length 1 (basically all we have is each species represented through a single nucleotide), we assume that $X_1$ is a random variable which takes values in a four-element set (i.e $\{a,c,g,t\}$) and $A$ is the set of realizations of $X_1$ (and similarly for a random variable $X_2$ whose realisations are represented by $B$). Let $\eta$ represent a Bernoulli random variable taking values $1$ and $2$ with parameter $\alpha = |A|/|\mathcal{S}|$. Then letting $Z = X_\eta$ the mutual between $Z$ and the tree $\eta$ can be estimated as
+Here $|j|$ represents the number of observations of the outcome $j$ in the data $x_i$. With this, we can now set up step 3 of `infotree`. 
 
-$$I(Z, \eta) \approx I(\mathcal{S}; (A,B)) = H(\mathcal{S}) - \frac{|A|}{|\mathcal{S}|}H(A) - \frac{|B|}{|\mathcal{S}|}H(B)$$ 
+## Sequence data of length N > 1 
 
-The optimal partition is a solution to 
+Most sequence alignment data, however, has more than one nucleotide site (surprise). In the case when each OTU is represented by a nucleotide sequence of length $N$, the random variables $X_i$ are of the form $(Y_{i}^{1}, \ldots, Y_{i}^{N})$ where $Y_{i}^{j}$ is the random variable that takes values in $\{a,c,g,t\}$ and describes the $j$th site in $X_i$ for $i=0,1,2$. Consequently, the entropies in equation (1) can be written as joint entropies:
 
-$$
-\mathcal{P}^* = \text{argmax}_{(A,B)}\,I(\mathcal{S};(A,B))
-$$
+$H(X_i) = H(Y_{i}^{1}, \ldots, Y_{i}^{N})$.
 
-The algorithm `infotree` for making a tree $T(\mathcal{S})$ with input $\mathcal{S}$ is as follows: 
+We assume that all the sites are independent so the joint entropy can be written as the sum of entropies at each site: 
 
-a) Compute the optimal partition of $\mathcal{S}$ as $\mathcal{P}^* = A \sqcup B$. 
-b) Run `infotree` on $A$ and $B$ as input.
+$H(X_i) =  H(Y_{i}^{1}, \ldots, Y_{i}^{N}) = \sum_{j=1}^{N} H(Y_{i}^{j})$. 
+
+Consequently, for sequence data of length $N$ > 1, the entropy calculations become 
+
+$$H(x_i) = -\sum_{j=1}^{N}\sum_{y \in {a,c,g,t}}log_2\Big(\frac{|y(j)|}{|x_i|}\Big)\frac{|y(j)|}{|x_i|}$$ 
+
+Here $|y(j)|$ is the number of observations of the outcome $y(j)$ in site $j$. 
+
+## Branch lengths 
+
+There are two important aspects to a phylogenetc tree: its topology and its branch lengths. Thus far our algorithm only computes the topology, so we must also build in an information theoretic notion of a branch length. In particular, we use the _Variation of Information_ to describe the distance between the sets $x_1$ and $x_2$. Recall that the variation of information (VI) between two random variables is $VI(X,Y) = 2H(X,Y) - H(X) + H(Y) = H(X|Y) + H(Y|X)$. Note that $VI$ satisfies the triangle inequality so it serves as a distance on the space of random variables. In our case we approximate it through its "algorithmic" counterpart: $VI(X,Y) \approx 2H(X \cup Y) - H(X) - H(Y)$ so the $VI(x_1,x_2) = 2H(x_0) - H(x_1) - H(x_2)$. Since the total length between $x_1$ and $x_2$ is $VI(x_1,x_2)$, we assign the branch length between the tips $x_i$ and the root $x_0$ as $1/2 VI(x_1, x_2)$. Note that in this case, both $x_1$ and $x_2$ are equally far from the root. There is also a way to assign branch lengths asymmetrically by weighting the $VI$ according to the weight $p \approx |x_1|/|x_0|$ from Equation 1. With the branch length modification, `infotree` is the following algorithm: 
+
+```
+ALGORITHM infotree
+
+1. Start with data $x_0$
+2. If $x_0$ has one or two species, return the trees (OTU 1) or (OTU 1, OTU 2) respectively. 
+3. If $x_0$ has three more more species do: 
+   
+   Partition $x_0$ into $x_1, x_2 = \text{argmax}_{(a,b)}\,I(x_0;(a,b))$
+   
+   Compute: 
+   
+   a. Left tree = infotree(x_1)
+   b. Right tree = infotree(x_2)
+   
+   if branch lengths are asymmetric do
+      left branch = |x_1|/|x_0| * VI(x_1,x_2)
+      right branch = |x_2|/|x_0| * VI(x_1,x_2)
+   else 
+     left branch = 1/2 * VI(x_1,x_2)
+     right branch = 1/2 * VI(x_1,x_2)
+     
+   Return the tree (Left tree: left branch, Right tree: right branch)
+```
+
 
 # Implementation 
 
-Let's try this out on a small example. First we make a tree with say 9 tips that evolves by the Yule model where the probability of a bifurcation is 1/2. 
+We implement this algorithm in `R`, taking advantage of the `Entropy` function in `TreeTools` and the classes `DNAbin` and `phylo` which enable quick computation of base frequencies and Newick formats. 
 
 ```{r}
-t <- rtreeshape(1,9,model = "yule")
-
-plot(as.phylo(t[[1]]))
-```
-
-Using `simseq` we'll make sequences of length 1 representing the tree
-
-```{r}
-seqs <- simSeq(as.phylo(t[[1]]),l=12, type = "DNA")
-```
-
-Now let's set up the main body of the algorithm 
-
-```{r}
-mutual_info <- function(partition, sequence, pos){
-# inputs:
-# partition -- boolean denoting the partitions
-# sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
-# pos -- integer denoting the position in the sequence
-
-# output:
-# I(partition)
-
-#computing p(x \oplus y)
+info_gain_site <- function(sequence, partition) {
+  # inputs:
+  # partition -- boolean denoting the partitions
+  # sequence -- dataframe of type DNAbin or phyDat with each row a single nucleotide
+  # pos -- integer denoting the position in the sequence
+  # output:
+  # I(partition)
+  #computing 
   
-p_xy <- base.freq(as.DNAbin(sequence))
-
-A <- sequence[partition,pos]
-B <- sequence[!partition,pos]
-
-# Computing p(x)
-
-p_x <- base.freq(as.DNAbin(A))
-p_a <- length(A)/length(sequence)
-
-# Computing p(y)
-
-p_y <- base.freq(as.DNAbin(B))
-p_b <- length(B)/length(sequence)
-
-h_xy <- 0 
-h_x <- 0 
-h_y <- 0 
-
-# Computing p(x,y)
-
-I <- 0
-
-# for(i in c(1:4)){
-#   if(p_xy[i] !=0){
-#     h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
-#   }
-#   if(p_x[i] != 0){
-#     h_x <- h_x -p_x[i]*log2(p_x[i])
-#   }
-#   if(p_y[i] != 0){
-#     h_y <- h_y -p_y[i]*log2(p_y[i])
-#   }
-# }
-
-# I <- h_xy - p_a*h_x - p_b*h_y
-
-for(i in c(1:4)){
-  if(p_x[i] !=0 ){
-    I <- I - p_b*p_y[i]*log2(p_x[i])
-  }
-  if(p_y[i] != 0){
-    I <- I - p_a*p_x[i]*log2(p_y[i])
-  }
-}
-return(I)
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+  
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  
+  I <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  
 }
 
-```
-
-
-
-```{r}
-infopart <- function(sequence){
-#input: 
-# sequence -- aligned sequence in DNAbin or phyDat 
-# output: 
-# Newick string representing minimum information gain tree
-
-
-# if there are only two sequences return dichotomous tree
-if(length(sequence) == 1){
- tree_string <- names(sequence)[1] 
-} else if(length(sequence) == 2){
-  tree_string <- paste("(", names(sequence)[1], ", ", names(sequence)[2], ")", sep = "")
-} else{
+vi_site <- function(sequence, partition) {
+  # inputs:
+  # partition -- boolean denoting the partitions
+  # sequence -- dataframe of type DNAbin or phyDat with each row a single nucleotide
+  # pos -- integer denoting the position in the sequence
+  # output:
+  # I(partition)
+  #computing p(x \oplus y)
   
-  # There are more than two sequences so we must find the optimal partition. 
-  # Initialize the data 
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
   
-  partition <- as.logical(splitset(length(sequence))[2,])
-  I <- 0   
-  for(j in 1:attr(sequence, "nr")){
-          I <- I + mutual_info(partition, sequence, j)
-  }
-  max_val <- I
-  max_part <- partition
+  A <- sequence[partition]
+  B <- sequence[!partition]
   
-  for(i in 2:(2^(length(sequence))-1)){ # Run through all possible partitions
-    I <- 0 
-          # Compute overall mutual information 
-    #print(paste("computing the ",i,"th partition")) 
-    partition <- as.logical(splitset(length(sequence))[i,])
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  
+  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
+  return(VI)
+  
+}
+
+info_gain <- function(partition, seq) {
+  
+  # Compute information gain over all sites (assuming all sites are independent)
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  site_data <- asplit(seq, 2)
+  #I <- sum(as.numeric(mclapply(site_data, info_gain_site, partition = part_line)))
+  I <- sum(apply(seq, 2, info_gain_site, partition = part_line))
+  
+  #print(paste("I =", I))
+  return(I)
+}
+
+vi <- function(partition, seq) {
+  # Compute VI over all sites (assuming all sites are independent)
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, vi_site, partition = part_line))
+  
+  #print(paste("IG =", I))
+  return(I)
+}
+
+
+infotree <- function(sequence, asym = FALSE) {
+  #input:
+  # sequence -- matrix of characters
+  # output:
+  # Newick string representing minimum information gain tree
+  # if there are only two sequences return dichotomous tree
+  
+  l = DIM(sequence)
+  names = row.names(sequence)
+  num_sites = ncol(sequence)
+  
+  if (l == 1) {
+    tree_string <- names[1]
+  } else if (l == 2) {
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    branch <- vi(part_matrix, sequence)/num_sites 
+    # asymmetric branch lengths mode
+    tree_string <-
+      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
+    cat("Done!\n")
+  } else{
+    # There are more than two sequences so we must find the optimal partition.
     
-        for(j in 1:attr(sequence, "nr")){
-            I <- I + mutual_info(partition, sequence, j)
-        }
+    cat("Partitioning...")
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    parts <- asplit(part_matrix,1)
+    res <- mclapply(parts, info_gain, seq = sequence)
+    max_val <- max(as.numeric(res))
+    max_part <- part_matrix[which.max(as.numeric(res)), ]
+    # res <- apply(part_matrix, 1, info_gain, seq = sequence)
+    # max_val <- max(res)
+    # max_part <- part_matrix[which.max(res), ]
+    branch <- vi(max_part, sequence)/num_sites
+    cur_partition <- as.logical(max_part)
     
-    print(paste("I =",I))
+    # Partition sequence optimally into left and right sequences 
     
-    if(I < max_val){
-      max_val <- I 
-      max_part <- partition
+    left_sequence <- sequence[cur_partition, , drop = FALSE]
+    right_sequence <- sequence[!cur_partition, , drop = FALSE]
+    left_string <- infotree(left_sequence, asym = asym)
+    right_string <- infotree(right_sequence, asym = asym)
+    
+    # asymmetric branch length mode
+    
+    if(asym){
+      left_branch <- (nrow(left_sequence)/nrow(sequence))
+      right_branch <- (nrow(right_sequence)/nrow(sequence))
+      tree_string <-
+        paste("(", left_string, ":", left_branch*branch, ", ", right_string, ":", right_branch*branch, ")", sep = "")  
+    } else{
+      tree_string <-
+        paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
     }
+    
+    
+    
+    
   }
-   print(paste("The partition is ", max_part))
-   left_sequence <- sequence[max_part,]
-   right_sequence <- sequence[!max_part,]
-   left_string <- infopart(left_sequence)
-   right_string <- infopart(right_sequence)
-   
-   tree_string <- paste("(",left_string,", ",right_string,")", sep = "")
-
-   
-}
-
   return(tree_string)
 }
 ```
 
-## Codon variant
+# Examples 
 
-Instead of computing over nucleotides (and the gap character) we compute over codons, which are sequences of three nucleotides. First we preprocess data to get it into codon structure 
+## Length 1 sequence
 
-```{r}
-coiii <- ReadCharacters("coiii.nex")
-#sequence <- sequence[,1:6]
+Let's try this out on a small example. Using `simseq` we'll make sequences of length 1 representing the tree
+
+```{r, echo=FALSE, include=FALSE, results= 'hide'}
+t <- rtreeshape(1,9,model = "yule")
+
+plot(as.phylo(t[[1]]))
+title("Original Tree")
 ```
 
-```{r}
-codon_sequence <- nuc_to_codon(sequence)
-```
-
-```{r}
-infotree_codon(codon_sequence)
-```
-
-```{r}
-plot(read.tree(text = "((((Mouse:0.969465648854962, Rat:0.969465648854962):0.48521596741657, Seal:0.48521596741657):0.332850840215643, (Human:0.526589440710023, (Bovine:1.02290076335878, Whale:1.02290076335878):0.526589440710023):0.332850840215643):0.327669527655008, ((Carp:0.931297709923664, Loach:0.931297709923664):0.410400023685683, (Chicken:1.16030534351145, Xenopus:1.16030534351145):0.410400023685683):0.327669527655008);"))
-```
-
-```{r}
-infotree(sequence)
-```
-```{r}
-plot(read.tree(text = "((((Mouse:0.176844783715013, Rat:0.176844783715013):0.184497847948678, Seal:0.184497847948678):0.119266605483943, (Human:0.201166110257328, (Bovine:0.194656488549618, Whale:0.194656488549618):0.201166110257328):0.119266605483943):0.126995763556316, (Chicken:0.223670472654669, ((Carp:0.173027989821883, Loach:0.173027989821883):0.192135581199029, Xenopus:0.192135581199029):0.223670472654669):0.126995763556316);"))
-```
-
-Hmm. The module `info_gain_codon_site` is general (as in it doesn't matter what vector we hand to it for entropy calculation) so it can compute the information gain even for nucleotides. But it turns out that `info_gain_site` is quicker than `info_gain_codon_site` because `base.freq` is quicker than `table` at calculating frequencies. I wonder if what'll happen we hand-compute these frequencies...
-
-```{r}
-start <- Sys.time()
-#profvis({
-  
-A <- sequence[partition]
-B <- sequence[!partition]
-w_x <- length(A) / length(sequence)
-w_y <- length(B) / length(sequence)
-
-#compute p_x
-values_x <- as.matrix(unique(A))
-p_x <- apply(values_x, 2, function(x) sum(as.numeric(A == x))/length(A))
-
-#compute p_y
-values_y <- as.matrix(unique(B))
-p_y <- apply(values_y, 2, function(x) sum(as.numeric(B == x))/length(B))
-
-#compute p_xy
-values_xy <- as.matrix(unique(sequence))
-p_xy <- apply(values_xy, 2, function(x) sum(as.numeric(sequence == x))/length(sequence))
-
-#compute IG
-I <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
-  
-#})
-end <- Sys.time()
-# 
-
-print(end - start)
-```
-
-```{r}
-start <- Sys.time()
-I1 <- info_gain_site(sequence, partition)
-end <- Sys.time()
-print(end - start)
-```
-
-
-```{r}
-start <- Sys.time()
-I2 <- info_gain_codon_site(sequence, partition)
-end <- Sys.time()
-print(end - start)
-```
-
-Nope! `base.freq` wins. 
-
-## Generalizing code 
-
-```{r}
-names <- rownames(coiii)
-set <- c("Bovine", "Carp", "Chicken", "Human")
-```
-
-```{r}
-names %in% set
-```
-
-## Multiple maxima problem 
-
-Let's load up CO3 and run the initial partition with I values 
-
-```{r}
-sequence <- sequences[[1]]
-l = DIM(sequence)
-names = row.names(sequence)
-num_sites = ncol(sequence)
-cat("Partitioning...")
-part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
-parts <- asplit(part_matrix,1)
-res <- mclapply(parts, info_gain, seq = sequence)
-max_val <- max(as.numeric(res))
-max_part <- part_matrix[which.max(as.numeric(res)), ]
-# res <- apply(part_matrix, 1, info_gain, seq = sequence)
-# max_val <- max(res)
-# max_part <- part_matrix[which.max(res), ]
-branch <- vi(max_part, sequence)/num_sites
-cur_partition <- as.logical(max_part)
-
-
-```
-
-```{r}
-res_sub <- res
-```
-
-```{r}
-plot(as.numeric(res_sub))
-```
-
-```{r}
-res_sub <- res_sub[33:63]
-```
-
-
-Swapping principle: 
-
-```{r}
-start_part <- rep(FALSE, 12)
-start_part[1] <- TRUE
-for(i in c(2:11)){
-  
-  cat("Current state: ", as.character(start_part), "\n")
-  
-  # Initialize partitions 
-  left_part <- start_part
-  right_part <- start_part
-  
-  # Change the team of the ith species 
-  left_part[12-i] <- TRUE
-  
-  # Compute the competing IG's 
-  left_IG <- info_gain(left_part, seq = sequence)
-  right_IG <- info_gain(right_part, seq = sequence)
-  
-  # Flip the bit or keep it the same
-  if(left_IG > right_IG){
-    start_part <- left_part
-  }
-  
-}
-
-
-```
-
-Reflection principle 
-
-```{r}
-current_part <- part_matrix 
-end <- log2(nrow(current_part) + 1) - 1
-for(i in c(1:end)){
-  n <- nrow(current_part)
-  left_child <- current_part[1,]
-  middle_child <- current_part[(nrow(current_part)+1)/2, ]
-  right_child <- current_part[nrow(current_part),]
-  
-  left_info <- info_gain(left_child, sequence)
-  middle_info <- info_gain(middle_child, sequence)
-  right_info <- info_gain(right_child, sequence)
-  
-  winner <- c("left" = left_info, "middle" = middle_info, "right" = right_info) %>%
-            which.max %>%
-            names 
-  cat(winner, "\n")
-  if(winner == "left"){
-    current_part <- current_part[1:((n+1)/2 - 1),]
-  } else if(winner == "right"){
-    current_part <- current_part[((n+1)/2 + 1):nrow(current_part),]
-  } else{
-    start_index <- (nrow(current_part)+1)/4 + 1
-    end_index <- 3*(nrow(current_part)+1)/4 - 1
-    current_part <- current_part[start_index:end_index, ]
-  }
-
-}
-```
-
-
-## Asymmetric Branch lengths
-
-```{r}
-press_data <- as.character.DNAbin(read.dna("press_codes.phy"))
-press_half <- press_data[9:16,]
-```
-
-
-
-```{r}
-press_tree_agg <- read.tree(text = paste(infotree(press_half, asym = TRUE), ";", sep=""))
-plot(press_tree_agg)
-```
-
-## Reassigning branch lengths
-
-```{r}
-tree <- read.tree(text = "(((S2:0.366, S4:0.366):0.445020213082154, (S9:0.367091439224467, (S5:0.458, S10:0.458):0.734182878448934):0.667530319623231):0.244564938472181, (((S1:0.693, S3:0.693):0.490875921737079, (S7:0.612, S8:0.612):0.490875921737079):0.468008699472201, ((S6:0.43, S11:0.43):0.871430675756252, S12:0.435715337878126):0.351006524604151):0.342390913861054);")
-
-# Recover the left and right tree
-
-tree$edge.length <- NULL
-tree_names <- tree$tip.label
-left_tree <- subtrees(tree)[[2]]
-right_tree <- drop.tip(tree, left_tree$tip.label)
-
-branch = 0.5
-
-
-# right_tree_names <- as.factor(tree_names[!tree_names %in% left_tree$tip.label])
-# right_tree_index <- subtrees(tree) %>%
-#                     lapply(function(x) x$tip.label) %>%
-#                     lapply(function(x) identical(as.factor(x),right_tree_names)) %>%
-#                     as.logical %>%
-#                     which()
-# right_tree <- subtrees(tree)[[right_tree_index]]
-
-# Compute the branch lengths
-
-
-
-```
-
-```{r}
-plot(left_tree)
-```
-
-# Results
-
-## Sequences of length 1 
-
-We check the trees produced by information gain and symmetrized cross entropy for the 9 tips with sequence length 1. 
-
-```{r,echo=FALSE}
-IG_tree_string <- paste(infotree(seqs), ";", sep="")
-```
-
+Using `simseq` we'll make sequences of length 1 representing the tree
 
 ```{r, echo = FALSE}
+seqs <- simSeq(as.phylo(t[[1]]),l=1, type = "DNA")
 image(as.DNAbin(seqs))
-#layout(matrix(c(1,2), 1, 2))
-#image(as.DNAbin(seqs))
-plot(read.tree(text = IG_tree_string))
 ```
-
-It's a totally sensible tree as it is able to differentiate species with different nucleotides. Clearly there are three distinct classes: $\{1,3,4,6\}, \{2\},$ and $\{5,8,9\}$. Starting from the leaves, each tip is first sorted into its own class before it is merged with tips from other classes. So this is a sensible dichotomous tree on our data. 
-
-## Sequences of length n 
-
-We assume that the distributions on different sites are independent.
+Now let's look at the tree produced by the information gain-based divisive algorithm! 
 
 ```{r}
-seqs2 <- simSeq(as.phylo(t[[1]]),l=12, type = "DNA")
+plot(read.tree(text = paste(infotree(as.character.DNAbin(as.DNAbin(seqs))),";", sep = "")))
 ```
+This tree, while not very informative, is the most sensible given the original sequence! Traversing from the tips, all the OTU's with the same nucleotide are put in the same clade before merging with the others. Note that `infotree` always assumes that the OTUs have a common ancestor (the root), which may not be the best assumption in the single nucleotide case. But anyway, the concept seems to work! 
 
-Let's visualize this sequence first: 
+## Data from Press et al 
+
+We'll compute a tree from the first half of the nucleotide dataset of 16 OTU's found in Chapter 16.4 of the Third Edition of Numerical Recipes. 
 
 ```{r, echo = FALSE}
-image(as.DNAbin(seqs2))
+press_half <- as.character.DNAbin(read.dna("press_codes.phy"))[1:8,]
+plot(read.tree(text = paste(infotree(press_half), ";", sep = "")))
 ```
+Note that this is the same tree as the original one! 
 
-Let's make the IG tree! 
+Despite its stunning success in all of two examples, `infotree` isn't always perfect. Have a look at some more examples in the tests folder. 
 
-```{r,echo=FALSE}
-IG2_tree_string <- paste(infopart(seqs2), ";", sep="")
-```
+# Notes on computation 
 
-```{r, echo = FALSE}
-plot(read.tree(text = IG2_tree_string))
-```
+1. `infotree` can be slow. This is because we optimize the information gain over all possible partitions of $x_0$ by actually evaluating information gains for each partition and then finding the maximum. That amounts to $2^{n-1} - 1$ computations where $n = |x_0|$. So even for 16 OTUs we make 32767 computations. That may not seem like a lot, but computing the entropies over many sites can take a while. For reference, here's how long the `info_gain` computation takes for a sequence block of length 1000 with 16 OTU's for a single partition. 
 
-We also have the following toy sequence from Press et al, stored in the file `press_codes.phy`. 
-
-```{r, echo = FALSE}
-# codes <- c("cggttgggagct",
-#            "aggtcgtgaggt",
-#            "tggttggggttt",
-#            "tgggtgcgagtt",
-#            "acgtttgggtga",
-#            "aaggttggggaa",
-#            "gtctttcgggtg",
-#            "cacttgcggggg",
-#            "gcgcggtgcagc",
-#            "aggcggtgcggg",
-#            "gggcggggcggg",
-#            "gggcgctgcggg",
-#            "ggacggaggctg",
-#            "gggtgggagctg",
-#            "aggaggctgatg",
-#            "tggcggatgatg")
-# 
-# write.dna(lapply(codes,s2c),"press_codes.phy")
+```{r, include=FALSE, results = 'hide'}
+sequence <- ReadCharacters("./TN93_Jul21/Sequences/sequence1.nex")
+partition <- splitset(16)[245,]
 ```
 
 ```{r}
+start<- Sys.time()
+info_gain(partition, sequence)
+end <- Sys.time()
+print(end - start)
+```
+
+It takes about 0.2 seconds for each run, so over 32767 runs it takes about 6553 seconds, which is about a 110 minutes, if we do these computations sequentially! 
+
+2. To quicken the pace of computation, we can parallelize the `infotree` procedure by realizing that:
+
+a. The information gain computations over all partitions can be done in parallel.
+b. The site information gains can also be computed in parallel (since the sites are independent)
+c. The left and right trees can be computed in parallel
+
+First of all, all these operations should be vectorized in order to take advantage of the quick `apply` functions in R. Second, we can parallelize these using `parallel::mclapply` but we must be careful: if we parallelize both (a) and (b) via `mclapply`, `R` will end up distributing only one core to `b`. Empirically, we find that it is quicker to only use `mclapply` for task (a). 
+
+3. We also have a codon variant of the above algorithm where instead of computing over nucleotide sequence data, we compute over codon data. The subroutine for computing the information gain in a codon site on a partition is the following: 
+
+```{r, eval = FALSE, echo= TRUE}
+info_gain_codon_site <- function(sequence, partition) {
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  p_x <- table(A)/length(A)
+  p_y <- table(B)/length(B)
+  p_xy <- table(sequence)/length(sequence)
+  IG <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  return(IG)
+}
+```
+
+Note that the above code is general for any form of data because of the use of `table` so you can even compute information gain for nucleotide data using `info_gain_codon_site`. But we still recommend using `info_gain_site` for nucleotide data because `table` is slower than `ape`'s `base.freq` at computing base frequencies. 
+
+```{r, echo = FALSE, include= TRUE}
+site_data <- sequence[,9]
+```
+
+```{r}
+start <- Sys.time()
+info_gain_codon_site(site_data, as.logical(partition))
+end <- Sys.time()
+print(end - start)
 ```
 
 
 ```{r}
-read.dna("press_codes.phy")
+start <- Sys.time()
+info_gain_site(site_data, as.logical(partition))
+end <- Sys.time()
+print(end - start)
 ```
 
-We'll convert it to `phyDat` to start crunching trees: 
-
-```{r}
-trial_DNA <- as.phyDat(read.dna("press_codes.phy"))
-
-trial_DNA
-```
-
-Let's make a tree using `infopart`! Let's actually avoid computing the whole tree for the data since we'd have to make $2^15 - 1$ computations. Instead, let's assume the first (and the most costly) split: ((0:7),(8:15)). Now we'll run `infopart` on these partitions and check the results with Figures 16.6.4-16.6.6 in Press et al. 
-
-```{r}
-layout(matrix(c(1,2), 1, 2))
-plot(read.tree(text = paste(infopart(trial_DNA[1:8,]), ";", sep="")))
-plot(read.tree(text = paste(infopart(trial_DNA[9:16,]), ";", sep="")))
-```
-
-Let's go for the `coiii.nex` dataset found in Cummings et al. 1995! 
-
-```{r}
-# reading coiii.nex as phyDat: 
-
-raw_data <- ReadCharacters("coiii.nex")
-
-# reading coiii.nex as DNAbin: 
-
-#raw_data <- read.nexus.data("coiii.nex")
-
-```
 

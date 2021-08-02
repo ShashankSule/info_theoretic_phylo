@@ -1,406 +1,519 @@
 Information gain model for trees
 ================
-Michael Cummings, Lang Song, and Shashank Sule
+14/06/2021
 
+# Introduction
 
-# The model
+Let ![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") be a set of
+OTU’s and let
+![T(x\_0)](https://latex.codecogs.com/png.latex?T%28x_0%29 "T(x_0)") be
+a binary tree associated with
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0"). If
+![\|x\_0\| = n](https://latex.codecogs.com/png.latex?%7Cx_0%7C%20%3D%20n "|x_0| = n")
+then the number of bifurcations in
+![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29 "T(\mathcal{S})")
+is ![n-1](https://latex.codecogs.com/png.latex?n-1 "n-1") so the task is
+to figure out the bifurcations of
+![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29 "T(\mathcal{S})")
+(or more directly, figure out a set of sensible bifurcations
+![B\_i](https://latex.codecogs.com/png.latex?B_i "B_i") to make a tree
+with
+![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D "\mathcal{S}")
+as tips or leaves).
 
-Let
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") be a set of OTU’s and let
-![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29
-"T(\\mathcal{S})") be a binary tree associated with
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}"). If ![|\\mathcal{S}| =
-n](https://latex.codecogs.com/png.latex?%7C%5Cmathcal%7BS%7D%7C%20%3D%20n
-"|\\mathcal{S}| = n") then the number of bifurcations in
-![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29
-"T(\\mathcal{S})") is ![n-1](https://latex.codecogs.com/png.latex?n-1
-"n-1") so the task is to figure out the bifurcations of
-![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29
-"T(\\mathcal{S})") (or more directly, figure out a set of sensible
-bifurcations ![B\_i](https://latex.codecogs.com/png.latex?B_i "B_i") to
-make a tree with
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") as tips or leaves). In APE lingo, these bifurcations are
-called “splits”.
+The information gain model of computing bifurcations/splits/partitions
+is as follows: Let
+![\\mathcal{P} = x\_1 \\sqcup x\_2](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D%20%3D%20x_1%20%5Csqcup%20x_2 "\mathcal{P} = x_1 \sqcup x_2")
+be a partition of
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0"). If
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") are realizations
+of a random variable
+![X\_1](https://latex.codecogs.com/png.latex?X_1 "X_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2") are realizations
+of a random variable
+![X\_2](https://latex.codecogs.com/png.latex?X_2 "X_2"), then
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") is the set of
+realizations of a random variable
+![Y = X\_\\eta](https://latex.codecogs.com/png.latex?Y%20%3D%20X_%5Ceta "Y = X_\eta")
+where
+![P(\\eta = 1) = p](https://latex.codecogs.com/png.latex?P%28%5Ceta%20%3D%201%29%20%3D%20p "P(\eta = 1) = p")
+and
+![P(\\eta = 2) = 1-p](https://latex.codecogs.com/png.latex?P%28%5Ceta%20%3D%202%29%20%3D%201-p "P(\eta = 2) = 1-p").
+The information gain of
+![\\mathcal{P}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D "\mathcal{P}")
+is then
 
-The information gain model of bifurcations/splits/partitions is as
-follows: Let
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") be a set of OTU’s and ![\\mathcal{P} = A \\sqcup
-B](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D%20%3D%20A%20%5Csqcup%20B
-"\\mathcal{P} = A \\sqcup B") any partition. Supposing that
-![A](https://latex.codecogs.com/png.latex?A "A") are realizations of a
-random process ![X](https://latex.codecogs.com/png.latex?X "X") and
-![B](https://latex.codecogs.com/png.latex?B "B") are realizations of a
-random process ![Y](https://latex.codecogs.com/png.latex?Y "Y"), then
-the information of
-![\\mathcal{P}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D
-"\\mathcal{P}") is ![J(\\mathcal{P}) :=
-J(X,Y)](https://latex.codecogs.com/png.latex?J%28%5Cmathcal%7BP%7D%29%20%3A%3D%20J%28X%2CY%29
-"J(\\mathcal{P}) := J(X,Y)") where
-![J](https://latex.codecogs.com/png.latex?J "J") is some meaningful
-information theoretic function of
-![X](https://latex.codecogs.com/png.latex?X "X") and
-![Y](https://latex.codecogs.com/png.latex?Y
-"Y").
+![\\begin{equation}
+I(Y, \\eta) = H(Y) - H(X\_\\eta \\mid \\eta) = H(Y) - pH(X\_1) - (1-p)H(X\_2) \\approx H(x\_0) - \\frac{x\_1}{x\_0}H(X\_1) - \\frac{x\_2}{x\_0}H(X\_2)
+\\end{equation} 
+(\\\#eq:infogain)](https://latex.codecogs.com/png.latex?%5Cbegin%7Bequation%7D%0AI%28Y%2C%20%5Ceta%29%20%3D%20H%28Y%29%20-%20H%28X_%5Ceta%20%5Cmid%20%5Ceta%29%20%3D%20H%28Y%29%20-%20pH%28X_1%29%20-%20%281-p%29H%28X_2%29%20%5Capprox%20H%28x_0%29%20-%20%5Cfrac%7Bx_1%7D%7Bx_0%7DH%28X_1%29%20-%20%5Cfrac%7Bx_2%7D%7Bx_0%7DH%28X_2%29%0A%5Cend%7Bequation%7D%20%0A%28%5C%23eq%3Ainfogain%29 "\begin{equation}
+I(Y, \eta) = H(Y) - H(X_\eta \mid \eta) = H(Y) - pH(X_1) - (1-p)H(X_2) \approx H(x_0) - \frac{x_1}{x_0}H(X_1) - \frac{x_2}{x_0}H(X_2)
+\end{equation} 
+(\#eq:infogain)")
 
-# Some comments about the choice of ![J](https://latex.codecogs.com/png.latex?J "J")
+We pick the partition
+![\\mathcal{P}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D "\mathcal{P}")
+that maximizes the information gain on the data
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0").
 
-Of course, this is a very general model but it’s worth spending some
-time about the choices of ![J](https://latex.codecogs.com/png.latex?J
-"J"). So far we’ve come up with the following:
+This strategy of picking the information gain-maximizing partition
+closely follows decision tree learning in binary classification, where
+at each node the data is classified according to the labels of the
+information gain maximizing feature. In such a case the split at a node
+is induced by the labels of the optimal feature
+![f^\* = \\underset{\\text{feature}}{argmax} I (data, feature)](https://latex.codecogs.com/png.latex?f%5E%2A%20%3D%20%5Cunderset%7B%5Ctext%7Bfeature%7D%7D%7Bargmax%7D%20I%20%28data%2C%20feature%29 "f^* = \underset{\text{feature}}{argmax} I (data, feature)").
+Of course, in our case, when each OTU is represented by a nucleotide (or
+codon) sequence, we assume that we don’t have feature-level binary data
+so we search over all partitions of
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") instead.
+Moreover, this strategy of making a tree is divisive or “top-down”: at
+each stage we take data
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") and split it
+into two clusters
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2"). We obtain a
+tree by repeating this splitting process on
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2") recursively. In
+summary the algorithm is as follows:
 
-1.  Information gain
+    ALGORITHM infotree
 
-This model is used to make decision trees from given data
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") containing data from a set of classes (typically it’s a
-binary set). Let ![A \\sqcup B =
-\\mathcal{S}](https://latex.codecogs.com/png.latex?A%20%5Csqcup%20B%20%3D%20%5Cmathcal%7BS%7D
-"A \\sqcup B = \\mathcal{S}") and ![P\_A =
-|A|/|\\mathcal{S}|](https://latex.codecogs.com/png.latex?P_A%20%3D%20%7CA%7C%2F%7C%5Cmathcal%7BS%7D%7C
-"P_A = |A|/|\\mathcal{S}|"). Then let ![Z \\sim
-X\_\\eta](https://latex.codecogs.com/png.latex?Z%20%5Csim%20X_%5Ceta
-"Z \\sim X_\\eta") where ![\\eta
-= 1](https://latex.codecogs.com/png.latex?%5Ceta%20%3D%201 "\\eta = 1")
-with probability ![P\_A](https://latex.codecogs.com/png.latex?P_A "P_A")
-and ![2](https://latex.codecogs.com/png.latex?2 "2") with probability
-![1 - P\_A](https://latex.codecogs.com/png.latex?1%20-%20P_A "1 - P_A").
-Considering
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") as a set of samples from
-![Z](https://latex.codecogs.com/png.latex?Z "Z") we can actually compute
-![I(Z;\\eta) = H(Z) - H(Z \\mid \\eta) = H(\\mathcal{S}) - P\_A H(A) -
-(1 - P\_{A})
-H(B)](https://latex.codecogs.com/png.latex?I%28Z%3B%5Ceta%29%20%3D%20H%28Z%29%20-%20H%28Z%20%5Cmid%20%5Ceta%29%20%3D%20H%28%5Cmathcal%7BS%7D%29%20-%20P_A%20H%28A%29%20-%20%281%20-%20P_%7BA%7D%29%20H%28B%29
-"I(Z;\\eta) = H(Z) - H(Z \\mid \\eta) = H(\\mathcal{S}) - P_A H(A) - (1 - P_{A}) H(B)").
-This is the corrected version of the formula at the bottom of page 3 in
-`info_theory_ideas`. Using the notation of
-![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i") from this
-document, we may also write it as ![I(x\_0; (x\_1, x\_2)) = H(x\_0) -
-\\alpha H(x\_1) -
-(1-\\alpha)H(x\_2)](https://latex.codecogs.com/png.latex?I%28x_0%3B%20%28x_1%2C%20x_2%29%29%20%3D%20H%28x_0%29%20-%20%5Calpha%20H%28x_1%29%20-%20%281-%5Calpha%29H%28x_2%29
-"I(x_0; (x_1, x_2)) = H(x_0) - \\alpha H(x_1) - (1-\\alpha)H(x_2)")
-where ![\\alpha](https://latex.codecogs.com/png.latex?%5Calpha
-"\\alpha") is the proportion of taxa in the partition
-![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1"). Here the
-expression “![(x\_1,
-x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
-"(x_1, x_2)")” is to be understood as the *tree* ![(x\_1,
-x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
-"(x_1, x_2)") in Newick and not the joint distribution ![(x\_1,
-x\_2)](https://latex.codecogs.com/png.latex?%28x_1%2C%20x_2%29
-"(x_1, x_2)"). We’ll have to be careful about this notation from now on.
-But computationally this strategy gives the most sensible trees for the
-simple case of ![n](https://latex.codecogs.com/png.latex?n "n")
-sequences of length 1.
+    1. Start with data $x_0$
+    2. If $x_0$ has one or two species, return the trees (OTU 1) or (OTU 1, OTU 2) respectively. 
+    3. If $x_0$ has three more more species do: 
+       
+       Partition $x_0$ into $x_1, x_2 = \text{argmax}_{(a,b)}\,I(x_0;(a,b))$
+       
+       Compute: 
+       
+       a. Left tree = infotree(x_1)
+       b. Right tree = infotree(x_2)
+       
+       Return the tree (Left tree, Right tree)
 
-2.  Symmetrised cross entropy
+# Computing IG
 
-Let ![p](https://latex.codecogs.com/png.latex?p "p") be the distribution
-of ![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
-![q](https://latex.codecogs.com/png.latex?q "q") the distribution of
-![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2"). Then the cross
-entropy is ![H(p,q) := -\\sum\_{x}p(x)\\log\_2
-q(x)](https://latex.codecogs.com/png.latex?H%28p%2Cq%29%20%3A%3D%20-%5Csum_%7Bx%7Dp%28x%29%5Clog_2%20q%28x%29
-"H(p,q) := -\\sum_{x}p(x)\\log_2 q(x)"). Note that ![H(p,q) \\neq
-H(q,p)](https://latex.codecogs.com/png.latex?H%28p%2Cq%29%20%5Cneq%20H%28q%2Cp%29
-"H(p,q) \\neq H(q,p)") in general so we let ![J(X,Y) = J(x\_1, x\_2) =
-H(p,q) +
-H(q,p)](https://latex.codecogs.com/png.latex?J%28X%2CY%29%20%3D%20J%28x_1%2C%20x_2%29%20%3D%20H%28p%2Cq%29%20%2B%20H%28q%2Cp%29
-"J(X,Y) = J(x_1, x_2) = H(p,q) + H(q,p)"). The cross entropy is a value
-that compares how far ![q](https://latex.codecogs.com/png.latex?q "q")
-is from ![p](https://latex.codecogs.com/png.latex?p "p") and in source
-coding quantifies the minimum expected code length when the underlying
-probability distribution of the source is misunderstood as
-![q](https://latex.codecogs.com/png.latex?q "q") instead of
-![p](https://latex.codecogs.com/png.latex?p "p").
-
-# Algorithm based on Information Gain
-
-In the case where
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") is aligned molecular sequence data of length 1
-(basically all we have is each species represented through a single
-nucleotide), we assume that
-![X\_1](https://latex.codecogs.com/png.latex?X_1 "X_1") is a random
+To implement the above algorithm we would need to compute the
+information gain
+![I(x\_0; (x\_1,x\_2))](https://latex.codecogs.com/png.latex?I%28x_0%3B%20%28x_1%2Cx_2%29%29 "I(x_0; (x_1,x_2))")
+which in turn involves computing the (empirical) entropies
+![H(x\_0)](https://latex.codecogs.com/png.latex?H%28x_0%29 "H(x_0)"),
+![H(x\_1)](https://latex.codecogs.com/png.latex?H%28x_1%29 "H(x_1)"),
+and
+![H(x\_2)](https://latex.codecogs.com/png.latex?H%28x_2%29 "H(x_2)"). In
+the case where ![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0")
+is sequence data of length 1 (essentially all we have is each species
+represented by a single nucleotide), we assume that
+![X\_i](https://latex.codecogs.com/png.latex?X_i "X_i") is a random
 variable which takes values in a four-element set (i.e
-![\\{a,c,g,t\\}](https://latex.codecogs.com/png.latex?%5C%7Ba%2Cc%2Cg%2Ct%5C%7D
-"\\{a,c,g,t\\}")) and ![A](https://latex.codecogs.com/png.latex?A "A")
-is the set of realizations of
-![X\_1](https://latex.codecogs.com/png.latex?X_1 "X_1") (and similarly
-for a random variable ![X\_2](https://latex.codecogs.com/png.latex?X_2
-"X_2") whose realisations are represented by
-![B](https://latex.codecogs.com/png.latex?B "B")). Let
-![\\eta](https://latex.codecogs.com/png.latex?%5Ceta "\\eta") represent
-a Bernoulli random variable taking values
-![1](https://latex.codecogs.com/png.latex?1 "1") and
-![2](https://latex.codecogs.com/png.latex?2 "2") with parameter
-![\\alpha =
-|A|/|\\mathcal{S}|](https://latex.codecogs.com/png.latex?%5Calpha%20%3D%20%7CA%7C%2F%7C%5Cmathcal%7BS%7D%7C
-"\\alpha = |A|/|\\mathcal{S}|"). Then letting ![Z =
-X\_\\eta](https://latex.codecogs.com/png.latex?Z%20%3D%20X_%5Ceta
-"Z = X_\\eta") the mutual between
-![Z](https://latex.codecogs.com/png.latex?Z "Z") and the tree
-![\\eta](https://latex.codecogs.com/png.latex?%5Ceta "\\eta") can be
-estimated as
+![\\{a,c,g,t\\}](https://latex.codecogs.com/png.latex?%5C%7Ba%2Cc%2Cg%2Ct%5C%7D "\{a,c,g,t\}"))
+and ![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i") is the set
+of realizations of
+![X\_i](https://latex.codecogs.com/png.latex?X_i "X_i"). Then we can
+compute the entropies
+![H(x\_i)](https://latex.codecogs.com/png.latex?H%28x_i%29 "H(x_i)") as
 
-  
-![I(Z, \\eta) \\approx I(\\mathcal{S}; (A,B)) = H(\\mathcal{S}) -
-\\frac{|A|}{|\\mathcal{S}|}H(A) -
-\\frac{|B|}{|\\mathcal{S}|}H(B)](https://latex.codecogs.com/png.latex?I%28Z%2C%20%5Ceta%29%20%5Capprox%20I%28%5Cmathcal%7BS%7D%3B%20%28A%2CB%29%29%20%3D%20H%28%5Cmathcal%7BS%7D%29%20-%20%5Cfrac%7B%7CA%7C%7D%7B%7C%5Cmathcal%7BS%7D%7C%7DH%28A%29%20-%20%5Cfrac%7B%7CB%7C%7D%7B%7C%5Cmathcal%7BS%7D%7C%7DH%28B%29
-"I(Z, \\eta) \\approx I(\\mathcal{S}; (A,B)) = H(\\mathcal{S}) - \\frac{|A|}{|\\mathcal{S}|}H(A) - \\frac{|B|}{|\\mathcal{S}|}H(B)")  
+![H(x\_i) = -\\sum\_{j \\in {a,c,g,t}}log\_2\\Big(\\frac{\|j\|}{\|x\_i\|}\\Big)\\frac{\|j\|}{\|x\_i\|}](https://latex.codecogs.com/png.latex?H%28x_i%29%20%3D%20-%5Csum_%7Bj%20%5Cin%20%7Ba%2Cc%2Cg%2Ct%7D%7Dlog_2%5CBig%28%5Cfrac%7B%7Cj%7C%7D%7B%7Cx_i%7C%7D%5CBig%29%5Cfrac%7B%7Cj%7C%7D%7B%7Cx_i%7C%7D "H(x_i) = -\sum_{j \in {a,c,g,t}}log_2\Big(\frac{|j|}{|x_i|}\Big)\frac{|j|}{|x_i|}")
 
-The optimal partition is a solution to
+Here ![\|j\|](https://latex.codecogs.com/png.latex?%7Cj%7C "|j|")
+represents the number of observations of the outcome
+![j](https://latex.codecogs.com/png.latex?j "j") in the data
+![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i"). With this, we
+can now set up step 3 of `infotree`.
 
-  
-![
-\\mathcal{P}^\* = \\text{argmax}\_{(A,B)}\\,I(\\mathcal{S};(A,B))
-](https://latex.codecogs.com/png.latex?%0A%5Cmathcal%7BP%7D%5E%2A%20%3D%20%5Ctext%7Bargmax%7D_%7B%28A%2CB%29%7D%5C%2CI%28%5Cmathcal%7BS%7D%3B%28A%2CB%29%29%0A
-"
-\\mathcal{P}^* = \\text{argmax}_{(A,B)}\\,I(\\mathcal{S};(A,B))
-")  
+## Sequence data of length N &gt; 1
 
-The algorithm `infotree` for making a tree
-![T(\\mathcal{S})](https://latex.codecogs.com/png.latex?T%28%5Cmathcal%7BS%7D%29
-"T(\\mathcal{S})") with input
-![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-"\\mathcal{S}") is as follows:
+Most sequence alignment data, however, has more than one nucleotide site
+(surprise). In the case when each OTU is represented by a nucleotide
+sequence of length ![N](https://latex.codecogs.com/png.latex?N "N"), the
+random variables ![X\_i](https://latex.codecogs.com/png.latex?X_i "X_i")
+are of the form
+![(Y\_{i}^{1}, \\ldots, Y\_{i}^{N})](https://latex.codecogs.com/png.latex?%28Y_%7Bi%7D%5E%7B1%7D%2C%20%5Cldots%2C%20Y_%7Bi%7D%5E%7BN%7D%29 "(Y_{i}^{1}, \ldots, Y_{i}^{N})")
+where
+![Y\_{i}^{j}](https://latex.codecogs.com/png.latex?Y_%7Bi%7D%5E%7Bj%7D "Y_{i}^{j}")
+is the random variable that takes values in
+![\\{a,c,g,t\\}](https://latex.codecogs.com/png.latex?%5C%7Ba%2Cc%2Cg%2Ct%5C%7D "\{a,c,g,t\}")
+and describes the ![j](https://latex.codecogs.com/png.latex?j "j")th
+site in ![X\_i](https://latex.codecogs.com/png.latex?X_i "X_i") for
+![i=0,1,2](https://latex.codecogs.com/png.latex?i%3D0%2C1%2C2 "i=0,1,2").
+Consequently, the entropies in equation (1) can be written as joint
+entropies:
 
-1)  Compute the optimal partition of
-    ![\\mathcal{S}](https://latex.codecogs.com/png.latex?%5Cmathcal%7BS%7D
-    "\\mathcal{S}") as ![\\mathcal{P}^\* = A \\sqcup
-    B](https://latex.codecogs.com/png.latex?%5Cmathcal%7BP%7D%5E%2A%20%3D%20A%20%5Csqcup%20B
-    "\\mathcal{P}^* = A \\sqcup B").
-2)  Run `infotree` on ![A](https://latex.codecogs.com/png.latex?A "A")
-    and ![B](https://latex.codecogs.com/png.latex?B "B") as input.
+![H(X\_i) = H(Y\_{i}^{1}, \\ldots, Y\_{i}^{N})](https://latex.codecogs.com/png.latex?H%28X_i%29%20%3D%20H%28Y_%7Bi%7D%5E%7B1%7D%2C%20%5Cldots%2C%20Y_%7Bi%7D%5E%7BN%7D%29 "H(X_i) = H(Y_{i}^{1}, \ldots, Y_{i}^{N})").
+
+We assume that all the sites are independent so the joint entropy can be
+written as the sum of entropies at each site:
+
+![H(X\_i) = H(Y\_{i}^{1}, \\ldots, Y\_{i}^{N}) = \\sum\_{j=1}^{N} H(Y\_{i}^{j})](https://latex.codecogs.com/png.latex?H%28X_i%29%20%3D%20H%28Y_%7Bi%7D%5E%7B1%7D%2C%20%5Cldots%2C%20Y_%7Bi%7D%5E%7BN%7D%29%20%3D%20%5Csum_%7Bj%3D1%7D%5E%7BN%7D%20H%28Y_%7Bi%7D%5E%7Bj%7D%29 "H(X_i) = H(Y_{i}^{1}, \ldots, Y_{i}^{N}) = \sum_{j=1}^{N} H(Y_{i}^{j})").
+
+Consequently, for sequence data of length
+![N](https://latex.codecogs.com/png.latex?N "N") &gt; 1, the entropy
+calculations become
+
+![H(x\_i) = -\\sum\_{j=1}^{N}\\sum\_{y \\in {a,c,g,t}}log\_2\\Big(\\frac{\|y(j)\|}{\|x\_i\|}\\Big)\\frac{\|y(j)\|}{\|x\_i\|}](https://latex.codecogs.com/png.latex?H%28x_i%29%20%3D%20-%5Csum_%7Bj%3D1%7D%5E%7BN%7D%5Csum_%7By%20%5Cin%20%7Ba%2Cc%2Cg%2Ct%7D%7Dlog_2%5CBig%28%5Cfrac%7B%7Cy%28j%29%7C%7D%7B%7Cx_i%7C%7D%5CBig%29%5Cfrac%7B%7Cy%28j%29%7C%7D%7B%7Cx_i%7C%7D "H(x_i) = -\sum_{j=1}^{N}\sum_{y \in {a,c,g,t}}log_2\Big(\frac{|y(j)|}{|x_i|}\Big)\frac{|y(j)|}{|x_i|}")
+
+Here
+![\|y(j)\|](https://latex.codecogs.com/png.latex?%7Cy%28j%29%7C "|y(j)|")
+is the number of observations of the outcome
+![y(j)](https://latex.codecogs.com/png.latex?y%28j%29 "y(j)") in site
+![j](https://latex.codecogs.com/png.latex?j "j").
+
+## Branch lengths
+
+There are two important aspects to a phylogenetc tree: its topology and
+its branch lengths. Thus far our algorithm only computes the topology,
+so we must also build in an information theoretic notion of a branch
+length. In particular, we use the *Variation of Information* to describe
+the distance between the sets
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2"). Recall that the
+variation of information (VI) between two random variables is
+![VI(X,Y) = 2H(X,Y) - H(X) + H(Y) = H(X\|Y) + H(Y\|X)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%3D%202H%28X%2CY%29%20-%20H%28X%29%20%2B%20H%28Y%29%20%3D%20H%28X%7CY%29%20%2B%20H%28Y%7CX%29 "VI(X,Y) = 2H(X,Y) - H(X) + H(Y) = H(X|Y) + H(Y|X)").
+Note that ![VI](https://latex.codecogs.com/png.latex?VI "VI") satisfies
+the triangle inequality so it serves as a distance on the space of
+random variables. In our case we approximate it through its
+“algorithmic” counterpart:
+![VI(X,Y) \\approx 2H(X \\cup Y) - H(X) - H(Y)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%5Capprox%202H%28X%20%5Ccup%20Y%29%20-%20H%28X%29%20-%20H%28Y%29 "VI(X,Y) \approx 2H(X \cup Y) - H(X) - H(Y)")
+so the
+![VI(x\_1,x\_2) = 2H(x\_0) - H(x\_1) - H(x\_2)](https://latex.codecogs.com/png.latex?VI%28x_1%2Cx_2%29%20%3D%202H%28x_0%29%20-%20H%28x_1%29%20-%20H%28x_2%29 "VI(x_1,x_2) = 2H(x_0) - H(x_1) - H(x_2)").
+Since the total length between
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2") is
+![VI(x\_1,x\_2)](https://latex.codecogs.com/png.latex?VI%28x_1%2Cx_2%29 "VI(x_1,x_2)"),
+we assign the branch length between the tips
+![x\_i](https://latex.codecogs.com/png.latex?x_i "x_i") and the root
+![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") as
+![1/2 VI(x\_1, x\_2)](https://latex.codecogs.com/png.latex?1%2F2%20VI%28x_1%2C%20x_2%29 "1/2 VI(x_1, x_2)").
+Note that in this case, both
+![x\_1](https://latex.codecogs.com/png.latex?x_1 "x_1") and
+![x\_2](https://latex.codecogs.com/png.latex?x_2 "x_2") are equally far
+from the root. There is also a way to assign branch lengths
+asymmetrically by weighting the
+![VI](https://latex.codecogs.com/png.latex?VI "VI") according to the
+weight
+![p \\approx \|x\_1\|/\|x\_0\|](https://latex.codecogs.com/png.latex?p%20%5Capprox%20%7Cx_1%7C%2F%7Cx_0%7C "p \approx |x_1|/|x_0|")
+from `\@ref(eq:infogain)`. With the branch length modification,
+`infotree` is the following algorithm:
+
+    ALGORITHM infotree
+
+    1. Start with data $x_0$
+    2. If $x_0$ has one or two species, return the trees (OTU 1) or (OTU 1, OTU 2) respectively. 
+    3. If $x_0$ has three more more species do: 
+       
+       Partition $x_0$ into $x_1, x_2 = \text{argmax}_{(a,b)}\,I(x_0;(a,b))$
+       
+       Compute: 
+       
+       a. Left tree = infotree(x_1)
+       b. Right tree = infotree(x_2)
+       
+       if branch lengths are asymmetric do
+          left branch = |x_1|/|x_0| * VI(x_1,x_2)
+          right branch = |x_2|/|x_0| * VI(x_1,x_2)
+       else 
+         left branch = 1/2 * VI(x_1,x_2)
+         right branch = 1/2 * VI(x_1,x_2)
+         
+       Return the tree (Left tree: left branch, Right tree: right branch)
 
 # Implementation
 
-Let’s try this out on a small example. First we make a tree with say 9
-tips that evolves by the Yule model where the probability of a
-bifurcation is 1/2.
+We implement this algorithm in `R`, taking advantage of the `Entropy`
+function in `TreeTools` and the classes `DNAbin` and `phylo` which
+enable quick computation of base frequencies and Newick formats.
 
 ``` r
-t <- rtreeshape(1,9,model = "yule")
-
-plot(as.phylo(t[[1]]))
-```
-
-![](info_gain_model_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
-
-Using `simseq` we’ll make sequences of length 1 representing the tree
-
-``` r
-seqs <- simSeq(as.phylo(t[[1]]),l=1, type = "DNA")
-```
-
-Now let’s set up the main body of the algorithm
-
-``` r
-mutual_info <- function(partition, sequence, pos){
-# inputs:
-# partition -- boolean denoting the partitions
-# sequence -- dataframe of type DNAbin or phyDat with each row an aligned sequence
-# pos -- integer denoting the position in the sequence
-
-# output:
-# I(partition)
-
-#computing p(x \oplus y)
+info_gain_site <- function(sequence, partition) {
+  # inputs:
+  # partition -- boolean denoting the partitions
+  # sequence -- dataframe of type DNAbin or phyDat with each row a single nucleotide
+  # pos -- integer denoting the position in the sequence
+  # output:
+  # I(partition)
+  #computing 
   
-p_xy <- base.freq(as.DNAbin(sequence))
-
-A <- sequence[partition,pos]
-B <- sequence[!partition,pos]
-
-# Computing p(x)
-
-p_x <- base.freq(as.DNAbin(A))
-p_a <- length(A)/length(sequence)
-
-# Computing p(y)
-
-p_y <- base.freq(as.DNAbin(B))
-p_b <- length(B)/length(sequence)
-
-h_xy <- 0 
-h_x <- 0 
-h_y <- 0 
-
-# Computing p(x,y)
-
-I <- 0
-
-for(i in c(1:4)){
-  if(p_xy[i] !=0){
-    h_xy <- h_xy -p_xy[i]*log2(p_xy[i])
-  }
-  if(p_x[i] != 0){
-    h_x <- h_x -p_x[i]*log2(p_x[i])
-  }
-  if(p_y[i] != 0){
-    h_y <- h_y -p_y[i]*log2(p_y[i])
-  }
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+  
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  
+  I <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  
 }
 
-I <- h_xy - p_a*h_x - p_b*h_y
-
-# for(i in c(1:4)){
-#   if(p_x[i] !=0 ){
-#     I <- I - p_a*p_y[i]*log2(p_x[i])
-#   }
-#   if(p_y[i] != 0){
-#     I <- I - p_b*p_x[i]*log2(p_y[i])
-#   }
-# }
-return(I)
+vi_site <- function(sequence, partition) {
+  # inputs:
+  # partition -- boolean denoting the partitions
+  # sequence -- dataframe of type DNAbin or phyDat with each row a single nucleotide
+  # pos -- integer denoting the position in the sequence
+  # output:
+  # I(partition)
+  #computing p(x \oplus y)
+  
+  pxy_all <- base.freq(as.DNAbin(sequence), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+  
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  
+  # Computing p(x)
+  px_all <- base.freq(as.DNAbin(A), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+  
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(B), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+  
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  
+  VI <- 2*Entropy(p_xy) - Entropy(p_x) - Entropy(p_y)
+  return(VI)
+  
 }
-```
 
-``` r
-infopart <- function(sequence){
-#input: 
-# sequence -- aligned sequence in DNAbin or phyDat 
-# output: 
-# Newick string representing minimum information gain tree
+info_gain <- function(partition, seq) {
+  
+  # Compute information gain over all sites (assuming all sites are independent)
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  site_data <- asplit(seq, 2)
+  #I <- sum(as.numeric(mclapply(site_data, info_gain_site, partition = part_line)))
+  I <- sum(apply(seq, 2, info_gain_site, partition = part_line))
+  
+  #print(paste("I =", I))
+  return(I)
+}
+
+vi <- function(partition, seq) {
+  # Compute VI over all sites (assuming all sites are independent)
+  part_line <- as.logical(partition)
+  I <- c(0,0)
+  I <- sum(apply(seq, 2, vi_site, partition = part_line))
+  
+  #print(paste("IG =", I))
+  return(I)
+}
 
 
-# if there are only two sequences return dichotomous tree
-if(length(sequence) == 1){
- tree_string <- names(sequence)[1] 
-} else if(length(sequence) == 2){
-  tree_string <- paste("(", names(sequence)[1], ", ", names(sequence)[2], ")", sep = "")
-} else{
+infotree <- function(sequence, asym = FALSE) {
+  #input:
+  # sequence -- matrix of characters
+  # output:
+  # Newick string representing minimum information gain tree
+  # if there are only two sequences return dichotomous tree
   
-  # There are more than two sequences so we must find the optimal partition. 
-  # Initialize the data 
+  l = DIM(sequence)
+  names = row.names(sequence)
+  num_sites = ncol(sequence)
   
-  partition <- as.logical(splitset(length(sequence))[2,])
-  I <- 0   
-  for(j in 1:attr(sequence, "nr")){
-          I <- I + mutual_info(partition, sequence, j)
-  }
-  max_val <- I
-  max_part <- partition
-  
-  for(i in 2:(2^(length(sequence))-1)){ # Run through all possible partitions
-    I <- 0 
-          # Compute overall mutual information 
-    #print(paste("computing the ",i,"th partition")) 
-    partition <- as.logical(splitset(length(sequence))[i,])
+  if (l == 1) {
+    tree_string <- names[1]
+  } else if (l == 2) {
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    branch <- vi(part_matrix, sequence)/num_sites 
+    # asymmetric branch lengths mode
+    tree_string <-
+      paste("(", names[1], ":", branch/2, ", ", names[2], ":", branch/2, ")", sep = "")
+    cat("Done!\n")
+  } else{
+    # There are more than two sequences so we must find the optimal partition.
     
-        for(j in 1:attr(sequence, "nr")){
-            I <- I + mutual_info(partition, sequence, j)
-        }
+    cat("Partitioning...")
+    part_matrix <- splitset(l)[c(2:(2 ^ (l - 1))), ]
+    parts <- asplit(part_matrix,1)
+    res <- mclapply(parts, info_gain, seq = sequence)
+    max_val <- max(as.numeric(res))
+    max_part <- part_matrix[which.max(as.numeric(res)), ]
+    # res <- apply(part_matrix, 1, info_gain, seq = sequence)
+    # max_val <- max(res)
+    # max_part <- part_matrix[which.max(res), ]
+    branch <- vi(max_part, sequence)/num_sites
+    cur_partition <- as.logical(max_part)
     
-    #print(paste("I =",I))
+    # Partition sequence optimally into left and right sequences 
     
-    if(I > max_val){
-      max_val <- I 
-      max_part <- partition
+    left_sequence <- sequence[cur_partition, , drop = FALSE]
+    right_sequence <- sequence[!cur_partition, , drop = FALSE]
+    left_string <- infotree(left_sequence, asym = asym)
+    right_string <- infotree(right_sequence, asym = asym)
+    
+    # asymmetric branch length mode
+    
+    if(asym){
+      left_branch <- (nrow(left_sequence)/nrow(sequence))
+      right_branch <- (nrow(right_sequence)/nrow(sequence))
+      tree_string <-
+        paste("(", left_string, ":", left_branch*branch, ", ", right_string, ":", right_branch*branch, ")", sep = "")  
+    } else{
+      tree_string <-
+        paste("(", left_string, ":", branch/2, ", ", right_string, ":", branch/2, ")", sep = "")
     }
+    
+    
+    
+    
   }
-   #print(paste("The partition is ", max_part))
-   left_sequence <- sequence[max_part,]
-   right_sequence <- sequence[!max_part,]
-   left_string <- infopart(left_sequence)
-   right_string <- infopart(right_sequence)
-   
-   tree_string <- paste("(",left_string,", ",right_string,")", sep = "")
-
-   
-}
-
   return(tree_string)
 }
 ```
 
-# Results
+# Examples
 
-## Sequences of length 1
+## Length 1 sequence
 
-We check the trees produced by information gain and symmetrized cross
-entropy for the 9 tips with sequence length
-1.
+Let’s try this out on a small example. Using `simseq` we’ll make
+sequences of length 1 representing the tree
 
-![](info_gain_model_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->![](info_gain_model_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+Using `simseq` we’ll make sequences of length 1 representing the tree
 
-It’s a totally sensible tree as it is able to differentiate species with
-different nucleotides. Clearly there are three distinct classes:
-![\\{1,3,4,6\\},
-\\{2\\},](https://latex.codecogs.com/png.latex?%5C%7B1%2C3%2C4%2C6%5C%7D%2C%20%5C%7B2%5C%7D%2C
-"\\{1,3,4,6\\}, \\{2\\},") and
-![\\{5,8,9\\}](https://latex.codecogs.com/png.latex?%5C%7B5%2C8%2C9%5C%7D
-"\\{5,8,9\\}"). Starting from the leaves, each tip is first sorted into
-its own class before it is merged with tips from other classes. So this
-is a sensible dichotomous tree on our data.
-
-## Sequences of length n
-
-We assume that the distributions on different sites are independent.
+![](info_gain_model_files/figure-gfm/unnamed-chunk-4-1.png)<!-- --> Now
+let’s look at the tree produced by the information gain-based divisive
+algorithm!
 
 ``` r
-seqs2 <- simSeq(as.phylo(t[[1]]),l=12, type = "DNA")
+plot(read.tree(text = paste(infotree(as.character.DNAbin(as.DNAbin(seqs))),";", sep = "")))
 ```
 
-Let’s visualize this sequence first:
+    ## Partitioning...Partitioning...Done!
+    ## Done!
+    ## Partitioning...Partitioning...Partitioning...Done!
 
-![](info_gain_model_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](info_gain_model_files/figure-gfm/unnamed-chunk-5-1.png)<!-- --> This
+tree, while not very informative, is the most sensible given the
+original sequence! Traversing from the tips, all the OTU’s with the same
+nucleotide are put in the same clade before merging with the others.
+Note that `infotree` always assumes that the OTUs have a common ancestor
+(the root), which may not be the best assumption in the single
+nucleotide case. But anyway, the concept seems to work!
 
-Let’s make the IG tree\!
+## Data from Press et al
 
-![](info_gain_model_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+We’ll compute a tree from the first half of the nucleotide dataset of 16
+OTU’s found in Chapter 16.4 of the Third Edition of Numerical Recipes.
 
-We also have the following toy sequence from Press et al, stored in the
-file `press_codes.phy`.
+    ## Partitioning...Partitioning...Done!
+    ## Done!
+    ## Partitioning...Done!
+    ## Done!
+
+![](info_gain_model_files/figure-gfm/unnamed-chunk-6-1.png)<!-- --> Note
+that this is the same tree as the original one!
+
+Despite its stunning success in all of two examples, `infotree` isn’t
+always perfect. Have a look at some more examples in the tests folder.
+
+# Notes on computation
+
+1.  `infotree` can be slow. This is because we optimize the information
+    gain over all possible partitions of
+    ![x\_0](https://latex.codecogs.com/png.latex?x_0 "x_0") by actually
+    evaluating information gains for each partition and then finding the
+    maximum. That amounts to
+    ![2^{n-1} - 1](https://latex.codecogs.com/png.latex?2%5E%7Bn-1%7D%20-%201 "2^{n-1} - 1")
+    computations where
+    ![n = \|x\_0\|](https://latex.codecogs.com/png.latex?n%20%3D%20%7Cx_0%7C "n = |x_0|").
+    So even for 16 OTUs we make 32767 computations. That may not seem
+    like a lot, but computing the entropies over many sites can take a
+    while. For reference, here’s how long the `info_gain` computation
+    takes for a sequence block of length 1000 with 16 OTU’s for a single
+    partition.
 
 ``` r
-read.dna("press_codes.phy")
+start<- Sys.time()
+info_gain(partition, sequence)
 ```
 
-    ## 16 DNA sequences in binary format stored in a matrix.
-    ## 
-    ## All sequences of same length: 12 
-    ## 
-    ## Labels:
-    ## 1
-    ## 2
-    ## 3
-    ## 4
-    ## 5
-    ## 6
-    ## ...
-    ## 
-    ## Base composition:
-    ##     a     c     g     t 
-    ## 0.109 0.135 0.547 0.208 
-    ## (Total: 192 bases)
-
-We’ll convert it to `phyDat` to start crunching trees:
+    ## [1] 128.8878
 
 ``` r
-trial_DNA <- as.phyDat(read.dna("press_codes.phy"))
-
-trial_DNA
+end <- Sys.time()
+print(end - start)
 ```
 
-    ## 16 sequences with 12 character and 12 different site patterns.
-    ## The states are a c g t
+    ## Time difference of 0.1436241 secs
 
-Let’s make a tree using `infopart`\! Let’s actually avoid computing the
-whole tree for the data since we’d have to make ![2^15
-- 1](https://latex.codecogs.com/png.latex?2%5E15%20-%201 "2^15 - 1")
-computations. Instead, let’s assume the first (and the most costly)
-split: ((0:7),(8:15)). Now we’ll run `infopart` on these partitions and
-check the results with Figures 16.6.4-16.6.6 in Press et al.
+It takes about 0.2 seconds for each run, so over 32767 runs it takes
+about 6553 seconds, which is about a 110 minutes, if we do these
+computations sequentially!
+
+2.  To quicken the pace of computation, we can parallelize the
+    `infotree` procedure by realizing that:
+
+<!-- -->
+
+1.  The information gain computations over all partitions can be done in
+    parallel.
+2.  The site information gains can also be computed in parallel (since
+    the sites are independent)
+3.  The left and right trees can be computed in parallel
+
+First of all, all these operations should be vectorized in order to take
+advantage of the quick `apply` functions in R. Second, we can
+parallelize these using `parallel::mclapply` but we must be careful: if
+we parallelize both (a) and (b) via `mclapply`, `R` will end up
+distributing only one core to `b`. Empirically, we find that it is
+quicker to only use `mclapply` for task (a).
+
+3.  We also have a codon variant of the above algorithm where instead of
+    computing over nucleotide sequence data, we compute over codon data.
+    The subroutine for computing the information gain in a codon site on
+    a partition is the following:
 
 ``` r
-layout(matrix(c(1,2), 1, 2))
-plot(read.tree(text = paste(infopart(trial_DNA[1:8,]), ";", sep="")))
-plot(read.tree(text = paste(infopart(trial_DNA[9:16,]), ";", sep="")))
+info_gain_codon_site <- function(sequence, partition) {
+  A <- sequence[partition]
+  B <- sequence[!partition]
+  w_x <- length(A) / length(sequence)
+  w_y <- length(B) / length(sequence)
+  p_x <- table(A)/length(A)
+  p_y <- table(B)/length(B)
+  p_xy <- table(sequence)/length(sequence)
+  IG <- Entropy(p_xy) - w_x*Entropy(p_x) - w_y*Entropy(p_y)
+  return(IG)
+}
 ```
 
-![](info_gain_model_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+Note that the above code is general for any form of data because of the
+use of `table` so you can even compute information gain for nucleotide
+data using `info_gain_codon_site`. But we still recommend using
+`info_gain_site` for nucleotide data because `table` is slower than
+`ape`’s `base.freq` at computing base frequencies.
+
+``` r
+start <- Sys.time()
+info_gain_codon_site(site_data, as.logical(partition))
+```
+
+    ## [1] 0.03757964
+
+``` r
+end <- Sys.time()
+print(end - start)
+```
+
+    ## Time difference of 0.0242641 secs
+
+``` r
+start <- Sys.time()
+info_gain_site(site_data, as.logical(partition))
+end <- Sys.time()
+print(end - start)
+```
+
+    ## Time difference of 0.003212929 secs
