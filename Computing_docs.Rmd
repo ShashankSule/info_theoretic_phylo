@@ -38,7 +38,7 @@ There are obviously two "generative" steps in the process: 1) generating the seq
 
 ## Sequence Generation methods
 
-We explored essentially three methods to simulate sequence from randomly generated trees: 
+We explored three methods to simulate sequence from randomly generated trees: 
 
 a. The `ms()` + `seqgen()` approach outlined on p.5 of [Wei-Chen Chen's `phyclust` manual](https://snoweye.github.io/phyclust/document/phyclust-guide.pdf)
 
@@ -46,7 +46,7 @@ b. Using `simSeq()` in `phangorn` in R.
 
 c. Using `evolver` in PAML outlined in [Ziheng Yang's manual](http://abacus.gene.ucl.ac.uk/software/pamlDOC.pdf). 
 
-We decided to go with option (c) because of the ease with which random tree generation and sequence generation are integrated in the `evolverRandomTree` option. We also made some changes in the original PAML code to write both the original tree and the generated sequence files. To get this going from scratch you need the following: 
+We decided to go with option (c) because of the ease with which random tree generation and sequence generation are integrated in the `evolverRandomTree` program We also made some changes in the original PAML code to write both the original tree and the generated sequence files. To get this going from scratch you need the following: 
 
 1. Install and set up PAML from the [manual](http://abacus.gene.ucl.ac.uk/software/pamlDOC.pdf). The instructions are in Chapter 2. 
 
@@ -78,7 +78,7 @@ Now the `evolverRandomTree` is ready. To make a random tree and generate a seque
 
 ```{r echo=TRUE, eval=FALSE}
 setwd("/Users/shashanksule/Documents/info_theoretic_phylo/paml4.8")
-n <- 500
+n <- 100
 trees <- list(n)
 sequences <- list(n)
 seeds <- list(n)
@@ -106,29 +106,30 @@ for(i in 1:n){
 
 Checking the 2.7 percent rule: 
 
-```{r}
+```{r, echo=FALSE, include=TRUE}
 Trees <- mclapply(trees, function(x) read.tree(text = x))
 Scale_Rats <- as.numeric(mclapply(Trees, function(x) min(x$edge.length)/5.5))
 ```
 
-```{r}
+```{r, echo=TRUE}
 table(Scale_Rats > 0.027)
 ```
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 Trees <- trees[Scale_Rats > 0.027]
 Sequences <- sequences[Scale_Rats > 0.027]
 Seeds <- seeds[Scale_Rats > 0.027]
 ```
 
-```{r}
+Writing the data to file: 
+
+```{r, eval= FALSE, echo=TRUE}
 seq_file_names <- paste("./JC69_Jul30/Sequences/sequence",1:125,".nex", sep = "")
 tree_file_names <- paste("./JC69_Jul30/Trees/tree",1:125,".txt", sep = "")
 seed_file_names <- paste("./JC69_Jul30/Seeds/seed",1:125,".txt", sep = "")
 ```
 
-
-```{r}
+```{r, eval=FALSE, echo=TRUE}
 mcmapply(function(x,y) write.nexus.data(x, file = y, interleaved = FALSE), Sequences, seq_file_names)
 mcmapply(function(x,y) write(x,file = y), Trees, tree_file_names)
 mcmapply(function(x,y) write(x,file = y), Seeds, seed_file_names)
@@ -136,7 +137,7 @@ mcmapply(function(x,y) write(x,file = y), Seeds, seed_file_names)
 
 Or load sequence data
 
-```{r}
+```{r, eval = FALSE, echo = TRUE}
 num_sequence <- 100
 trees <- list(num_sequence)
 divisive <- list(num_sequence)
@@ -186,9 +187,14 @@ Some sample code to run `baseml`:
 ```{r}
 #TN93 model specs 
 
+# Prepping the sequence for baseml in R
 trial_sequence <- sequences[[12]]
 trial_sequence <- as.numeric(as.factor(trial_sequence)) - matrix(1, nrow(trial_sequence), ncol(trial_sequence))
+
+#Species names
 species_names <- rownames(sequences[[12]])
+
+#Options for the .ctl file
 opts <- paml.baseml.control(noisy = 0,
       verbose = 0,
       runmode = 2,
@@ -212,9 +218,7 @@ opts <- paml.baseml.control(noisy = 0,
 paml_output <- paml.baseml(trial_sequence, seqname = rownames(sequences[[12]]), opts = opts)
 ```
 
-Running the above code on a list of sequences: 
-
-```{r}
+```{r, echo = FALSE, eval = FALSE}
 # Preprocess 
 
 trial_sequences <- mclapply(sequences, function(x) as.numeric(as.factor(x)) - matrix(1, nrow(x), ncol(x)))
@@ -241,18 +245,10 @@ opts <- paml.baseml.control(noisy = 0,
 paml_outputs <- mclapply(trial_sequences, paml.baseml, seqname = species_names, opts = opts)
 ```
 
-```{r}
-putfile <- read_lines("./paml4.8/mlb")
-```
-
-```{r}
-
-```
-
 
 I've kept the two examples in `/SpecialExamples/SError_0TN93` so you can pull the trees off from there
 
-```{r}
+```{r, echo=FALSE}
 orig_tree_Y <- read.nexus("./SpecialExamples/SError_0TN93/Treethatworks/orig_tree.nex")
 prod_tree_Y <- read.tree(text = readLines("./SpecialExamples/SError_0TN93/Treethatworks/prod_tree.txt"))
 scalerat <- min(orig_tree_Y$edge.length)/5.5
@@ -403,7 +399,6 @@ seqs_names <- paste(getwd(), "/TN93_Jul21/Sequences/sequence", 1:100, ".nex", se
 
 mapply(function(x,y) write(x,file = y), trees, tree_names)
 mapply(function(x,y) write(x, file = y), seeds, seed_names)
-
 mapply(function(x,y) write.nexus.data(x, file = y), sequences, seqs_names)
 ```
 

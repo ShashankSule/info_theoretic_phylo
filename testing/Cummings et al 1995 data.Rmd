@@ -1,0 +1,168 @@
+---
+title: "Cummings et al 1995 datasets"
+output:
+  github_document:
+    pandoc_args: --webtex
+---
+
+```{r include=FALSE, results='hide'}
+knitr::opts_knit$set(root.dir = '/Users/shashanksule/Documents/info_theoretic_phylo/')
+library("adegenet")
+library("ape")
+library("apTreeshape")
+library("BoSSA")
+library("diversitree")
+library("pegas")
+library("phangorn")
+library("phylobase")
+#library("phyloch")
+library("seqinr")
+library("readr")
+source("utilities.R")
+library("progress")
+library("ggplot2")
+library("phyclust")
+library("TreeDist")
+library("TreeTools")
+library("dplyr")
+library("parallel")
+library("adephylo")
+library("frequency")
+library("plot3D")
+```
+
+
+Let's test our information theoretic algorithms on the Cummings et al 1995 datasets. Note that a key point of this paper was that individual genes don't always reflect the genome tree (or that most phylogenetic reconstruction algorithms rarely produce the genome tree given aligned data on one gene). So a priori we shouldn't expect our algorithms--even if they usually nail down the right tree--to produce the genome tree on these datasets.
+
+```{r, echo = FALSE, results = 'hide'}
+names <- c("atpase6",
+"atpase8",
+"coii",
+"coiii",
+"cytb",
+"nd1",
+"nd2",
+"nd3",
+"nd4",
+"nd4l",
+"nd5",
+"nd6")
+
+d_file_paths_nuc <- paste("./1995_trees/Nucleotide/Divisive/", names, ".txt", sep = "")
+a_file_paths_nuc <- paste("./1995_trees/Nucleotide/Agglomerative/", names, ".txt", sep = "")
+d_file_paths_cod <- paste("./1995_trees/Codon/Divisive/", names, ".txt", sep = "")
+
+d_trees_nuc <- d_file_paths_nuc %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
+a_trees_nuc <- a_file_paths_nuc %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
+d_trees_cod <- d_file_paths_cod %>%
+                  mclapply(readLines) %>%
+                  mclapply(function(x) paste(x,";", sep = "")) %>%
+                  mclapply(function(x) read.tree(text = x)) %>%
+                  mclapply(ladderize)
+
+```
+
+## Nucleotide Data
+
+1. Divisive Trees
+
+```{r echo=FALSE}
+#layout(matrix(c(1,1,2,3,4,5,6,7,8,9,10,11,12,13), nrow = 7, ncol = 2))
+par(mar=c(2,2,2,2))
+gen_tree <- read.tree(text = "((Carp, Loach), (Xenopus, (Chicken, ((Mouse, Rat),(Human, (Seal, (Whale, Bovine)))))));")
+plot(gen_tree)
+title("Original tree")
+
+#d_trees_nuc <- d_trees_nuc[-3]
+for(i in c(1:12)){
+  
+  plot(d_trees_nuc[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
+```
+
+```{r echo=FALSE}
+d_distances <- as.numeric(mclapply(d_trees_nuc, function(x) RobinsonFoulds(gen_tree, x)))
+d_metricity <- as.numeric(mclapply(d_trees_nuc, is.ultrametric))
+d_additivity <- as.numeric(mclapply(d_trees_nuc, is_additive))
+hist(d_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of divisive trees \ncomputed from C. et al '95 datasets to original")
+
+text(7.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(d_distances == 0))/12))
+text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/12))
+text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/12))
+```
+
+2. Agglomerative Trees 
+
+```{r echo=FALSE}
+plot(gen_tree)
+title("Original tree")
+
+#d_trees_nuc <- d_trees_nuc[-3]
+for(i in c(1:12)){
+  
+  plot(a_trees_nuc[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
+```
+
+```{r echo=FALSE}
+a_distances <- as.numeric(mclapply(a_trees_nuc, function(x) RobinsonFoulds(gen_tree, x)))
+a_metricity <- as.numeric(mclapply(a_trees_nuc, is.ultrametric))
+a_additivity <- as.numeric(mclapply(a_trees_nuc, is_additive))
+hist(a_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of agglomerative trees \ncomputed from C. et al '95 datasets to original")
+
+text(9.5,1.5, paste("Proportion of \nidentical trees:", sum(as.numeric(a_distances == 0))/12))
+text(9.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(a_metricity == 1))/12))
+text(9.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(a_additivity == 1))/12))
+```
+
+
+## Codon 
+
+1. Divisive Trees
+
+```{r echo=FALSE}
+plot(gen_tree)
+title("Original tree")
+
+#d_trees_nuc <- d_trees_nuc[-3]
+for(i in c(1:12)){
+  
+  plot(d_trees_cod[[i]])
+  title(names[[i]])
+  axisPhylo()
+}
+```
+
+```{r echo=FALSE}
+d_distances <- as.numeric(mclapply(d_trees_cod, function(x) RobinsonFoulds(gen_tree, x)))
+d_metricity <- as.numeric(mclapply(d_trees_cod, is.ultrametric))
+d_additivity <- as.numeric(mclapply(d_trees_cod, is_additive))
+hist(d_distances, xlab = "Robinson Foulds Distance", ylab = "Frequency", main = 
+       "Robinson Foulds distances of divisive trees \ncomputed from C. et al '95 datasets to original")
+
+text(7.5,1.5, paste("Proportion of \nidentical to genome trees:", sum(as.numeric(d_distances == 0))/13))
+text(7.5,2.5, paste("Proportion of \nultrametric trees:", sum(as.numeric(d_metricity == 1))/13))
+text(7.5,3.5, paste("Proportion of \nadditive trees:", sum(as.numeric(d_additivity == 1))/13))
+```
+
+
+
+
+
+
+
+
