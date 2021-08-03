@@ -1,27 +1,73 @@
 Information theoretic agglomerative clustering
 ================
 
-Let’s write the variation of information as ![VI(X,Y) = 2H(X,Y) - H(X) +
-H(Y)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%3D%202H%28X%2CY%29%20-%20H%28X%29%20%2B%20H%28Y%29
-"VI(X,Y) = 2H(X,Y) - H(X) + H(Y)"). We then approximate it through its
-“algorithmic” counterpart: ![VI(X,Y) \\approx 2H(X \\cup Y) - H(X) -
-H(Y)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%5Capprox%202H%28X%20%5Ccup%20Y%29%20-%20H%28X%29%20-%20H%28Y%29
-"VI(X,Y) \\approx 2H(X \\cup Y) - H(X) - H(Y)") Then the agglomerative
-algorithm based on Press et al. is as follows:
+# A simple agglomerative algorithm
+
+Let’s write the variation of information as
+![VI(X,Y) = 2H(X,Y) - H(X) + H(Y)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%3D%202H%28X%2CY%29%20-%20H%28X%29%20%2B%20H%28Y%29 "VI(X,Y) = 2H(X,Y) - H(X) + H(Y)").
+We then approximate it through its “algorithmic” counterpart:
+![VI(X,Y) \\approx 2H(X \\sqcup Y) - H(X) - H(Y)](https://latex.codecogs.com/png.latex?VI%28X%2CY%29%20%5Capprox%202H%28X%20%5Csqcup%20Y%29%20-%20H%28X%29%20-%20H%28Y%29 "VI(X,Y) \approx 2H(X \sqcup Y) - H(X) - H(Y)")
+Then the agglomerative algorithm based on Press et al. is as follows:
 
 1.  Maintain an active `char` list `forests` denoting tips of the tree
 2.  Parse through `forests` and find the two closest clusters
-3.  Update `forest` by merging the two clusters via tree joining `t1 +
-    t2`.
+3.  Update `forest` by merging the two clusters via tree joining
+    `t1 + t2`.
 
-Moreover, when two forests ![X](https://latex.codecogs.com/png.latex?X
-"X") and ![Y](https://latex.codecogs.com/png.latex?Y "Y") are joined
-into ![(X,Y)](https://latex.codecogs.com/png.latex?%28X%2CY%29 "(X,Y)")
-the branch length from the node to each tip
+Moreover, when two forests
 ![X](https://latex.codecogs.com/png.latex?X "X") and
-![Y](https://latex.codecogs.com/png.latex?Y "Y") is taken to be ![1/2
-VI(X,Y)](https://latex.codecogs.com/png.latex?1%2F2%20VI%28X%2CY%29
-"1/2 VI(X,Y)"). We write it up as follows:
+![Y](https://latex.codecogs.com/png.latex?Y "Y") are joined into
+![(X,Y)](https://latex.codecogs.com/png.latex?%28X%2CY%29 "(X,Y)") the
+branch length from the node to each tip
+![X](https://latex.codecogs.com/png.latex?X "X") and
+![Y](https://latex.codecogs.com/png.latex?Y "Y") is taken to be
+![1/2 VI(X,Y)](https://latex.codecogs.com/png.latex?1%2F2%20VI%28X%2CY%29 "1/2 VI(X,Y)").
+
+``` r
+site_info <- function(seq, name1, name2) {
+  #Computes variation of information VI(name1, name2) at a given site 
+  
+  seqx <- seq[name1]
+  seqy <- seq[name2]
+
+  pxy_all <- base.freq(as.DNAbin(c(seqx, seqy)), all = TRUE)
+  p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
+
+  px_all <- base.freq(as.DNAbin(seqx), all = TRUE)
+  p_x <- px_all[c("a", "c", "g", "t", "-")]
+
+  # Computing p(y)
+  py_all <- base.freq(as.DNAbin(seqy), all = TRUE)
+  p_y <- py_all[c("a", "c", "g", "t", "-")]
+
+  entr_xy <- 0
+  entr_x <- 0
+  entr_y <- 0
+  
+  for (i in c(1:5)) {
+    if (p_xy[i] != 0) {
+      entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
+    }
+
+    if (p_x[i] != 0) {
+      entr_x <- entr_x - p_x[i] * log2(p_x[i])
+    }
+
+    if (p_y[i] != 0) {
+      entr_y <- entr_y - p_y[i] * log2(p_y[i])
+    }
+  }
+  I_alg_site <- 2 * entr_xy - entr_x - entr_y
+  return(I_alg_site)
+}
+```
+
+``` r
+alg_info <- function(seq_matrix, x_names, y_names) {
+  I_alg <- sum(apply(seq_matrix, 2, site_info, name1 = x_names, name2 = y_names))
+  return(I_alg)
+}
+```
 
 ``` r
 agg_clustering <- function(sequence) {
@@ -31,6 +77,7 @@ agg_clustering <- function(sequence) {
   # tree in newick format
   tips <- rownames(sequence)
   forests <- make_newick(tips)
+  num_sites = ncol(sequence)
   
   if (length(forests) == 1) {
     # Just one species
@@ -39,73 +86,245 @@ agg_clustering <- function(sequence) {
     # Just two species
     # tree_string <-
     #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
-    branch <- alg_info(sequence, tips[1], tips[2])
+    branch <- alg_info(sequence, tips[1], tips[2])/num_sites
+    tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
+  } else{
+    #More than two species
+    
+    end <- length(forests) - 3
+    dist_matrix <- matrix(0, end+3, end+3)
+
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    #print(x_names)
+    #print(y_names)
+
+    max_dist <- alg_info(sequence, x_names, y_names)
+    max_pair <- c(1, 2)
+
+    #Subroutine for computing the closest two clusters
+
+    for (k in 1:(length(forests) - 1)) {
+      for (j in (k + 1):length(forests)) {
+        x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
+        y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        # dist <-
+        #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
+        dist <- alg_info(sequence, x_names, y_names)
+        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        dist_matrix[k,j] <- dist
+        if (dist < max_dist) {
+          max_dist <- dist
+          max_pair <- c(k, j)
+        }
+      }
+    }
+
+    #Subroutine for joining the two forests
+    new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
+    forests <- forests[-max_pair]
+    forests <- c(forests, new_branch)
+    new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
+    #print(new_tip)
+    tips <- tips[-max_pair]
+    tips <- c(tips, new_tip)
+    dist_matrix <- dist_matrix[-max_pair, -max_pair]
+    dist_matrix <- rbind(dist_matrix, integer(end+1))
+    dist_matrix <- cbind(dist_matrix, integer(end+2))
+    
+    for(i in c(1:end)){
+      l <- length(forests)
+      #first calculate the new distances
+      for(j in 1:(l-1)) {
+        x_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        y_names <- read.tree(text = paste(forests[l], ";", sep = ""))$tip.label
+        dist <- alg_info(sequence, x_names, y_names)
+        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        dist_matrix[j,l] <- dist
+      }
+      
+      #find the minimum distance
+      dist_matrix[row(dist_matrix)>=col(dist_matrix)] <- NA
+      max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
+      max_dist <- dist_matrix[max_pair]
+      
+      new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
+      forests <- forests[-max_pair]
+      forests <- c(forests, new_branch)
+      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/(num_sites*2), ",", tips[max_pair[2]], ":", max_dist/(num_sites*2), ")", sep = "")
+      #print(new_tip)
+      tips <- tips[-max_pair]
+      tips <- c(tips, new_tip)
+      dist_matrix <- dist_matrix[-max_pair, -max_pair]
+      dist_matrix <- rbind(dist_matrix, integer(l-2))
+      dist_matrix <- cbind(dist_matrix, integer(l-1))
+    }
+
+    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
+    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
+    branch <- alg_info(sequence, x_names, y_names)/num_sites
+    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
+  }
+  #print(tree_string)
+  return(tree_string)
+}
+```
+
+## Neighbor-joining style agglomerative algorithm
+
+Neighbour-joining (NJ) is an agglomerative algorithm that returns an
+unrooted tree given all pairwise distances between tips. In fact, if the
+distance is ultrametric then NJ gives the exact tree. Here we design the
+following information-theoretic variant of NJ. In particular, the
+initial distances are assigned to be
+![VI(x,y)](https://latex.codecogs.com/png.latex?VI%28x%2Cy%29 "VI(x,y)")
+where ![x](https://latex.codecogs.com/png.latex?x "x") and
+![y](https://latex.codecogs.com/png.latex?y "y") are single-OTU
+clusters. Moreover, in the step where we recalculate distances between
+the new cluster and the existing ones, we use the variation of
+information instead of the old distances.
+
+    if (1 sequence){
+      return that sequence
+    } else if (2 sequence){
+      return 2 sequences as two nodes of the tree (what is the branch length here?)
+    } else{
+
+      n <- # of sequences
+      dist_matrix <- a new n by n matrix with 0's
+      fill the dist_matrix with VI between any two nodes
+        
+      for(1 through n-2){ #each step joins two clusters
+        1. calculate the u vector from the dist_matrix
+        2. find the minimum of the expression dij - ui - uj
+        3. save the names of the two joined clusters to x_names and y_names
+        4. join the two clusters and calculate the branch lengths
+        5. update the distance matrix
+      }
+        
+      finally, we have two clusters left, join them together with branch length each half of their distance to     }
+
+We write it up in R as follows:
+
+``` r
+nj_agg <- function(sequence) {
+  #inputs:
+  # sequence -- aligned dna sequence in phyDat
+  #ouput:
+  # tree in newick format
+  tips <- rownames(sequence)
+  forests <- make_newick(tips)
+  num_sites = ncol(sequence)
+  
+  if (length(forests) == 1) {
+    # Just one species
+    tree_string <- forests[1]
+  } else if (length(forests) == 2) {
+    # Just two species
+    # tree_string <-
+    #   make_newick(paste(forests[1], ",", forests[2], sep = ""))
+    branch <- alg_info(sequence, tips[1], tips[2])/num_sites
     tree_string <- paste("(", tips[1], ":", branch/2, ", ", tips[2], ":", branch/2, ")", sep = "")
   } else{
     #More than two species
     
     end <- length(forests) - 2
-    for (i in c(1:end)) {
-      #Do this subroutine n-2 times!
+    dist_matrix <- matrix(0, end+2, end+2)
+
+    #Subroutine for computing the closest two clusters
+
+    #fill in the distance matrix
+    for (k in 1:(length(forests) - 1)) {
+      for (j in (k + 1):length(forests)) {
+        x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
+        y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        # dist <-
+        #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
+        dist <- alg_info(sequence, x_names, y_names)
+        cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        dist_matrix[k,j] <- dist
+      }
+    }
+    
+    #Now repeat the process for n-2 times 
+    for(i in c(1:end)){
+      l <- length(forests)
+      u <- integer(l)
       
-      x_names <-
-        read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
-      y_names <-
-        read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-      #print(x_names)
-      #print(y_names)
-      
-      # max_dist <-
-      #   alg_info(matrix(sequence[x_names, ], nrow = length(x_names)),
-      #            matrix(sequence[y_names, ], nrow = length(y_names)))
-      max_dist <- alg_info(sequence, x_names, y_names)
-      max_pair <- c(1, 2)
-      
-      #Subroutine for computing the closest two clusters
-      
-      for (k in 1:(length(forests) - 1)) {
-        for (j in (k + 1):length(forests)) {
+      #calculate the u vector
+      for(k in 1:l){
+        sum <- 0
+        for(j in 1:l){
+          if(k < j){
+            sum <- sum + dist_matrix[k,j]
+          }
+          if(k > j){
+            sum <- sum + dist_matrix[j,k]
+          }
+        }
+        u[k] <- sum/(l - 2)
+        print(u[k])
+      }
+  
+      #find the minimum of the expression dij - ui - uj
+      max_dist <- dist_matrix[1,2] - u[1] - u[2]
+      max_pair <- c(1,2)
+      for (k in 1:(l - 1)) {
+        for (j in (k + 1):l) {
+          val <- dist_matrix[k,j] - u[k] - u[j]
           x_names <- read.tree(text = paste(forests[k], ";", sep = ""))$tip.label
           y_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
-          # dist <-
-          #   alg_info(matrix(sequence[x_names, ], nrow = length(y_names)))
-          dist <- alg_info(sequence, x_names, y_names)
-          cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
-          if (dist < max_dist) {
-            max_dist <- dist
-            max_pair <- c(k, j)
+          cat("Between group", k,"which is:", x_names,  "and group", j, "which is:", y_names, "current value is:", val, "\n")
+          if(val < max_dist){
+            max_dist <- val
+            max_pair <- c(k,j)
           }
         }
       }
       
-      # dist <- function(x,y){
-      #   x_names <- read.tree(text = paste(x, ";", sep = ""))$tip.label
-      #   y_names <- read.tree(text = paste(y, ";", sep = ""))$tip.label
-      #   return(alg_info(sequence, x_names, y_names))
-      # }
-      # dist_v <- Vectorize(dist)
-      # dist_matrix <- outer(forests, forests, dist_v)
-      # dist_matrix <- map2_dbl(.x = forests, .y = forests, .f = dist)
-      # diag(dist_matrix) <- NA
-      # 
-      # max_pair <- arrayInd(which.min(dist_matrix), dim(dist_matrix))
-      # max_dist <- dist_matrix[max_pair]
-      # print(max_pair)
+      #save the names for the combined clusters
+      x_names <- read.tree(text = paste(forests[max_pair[1]], ";", sep = ""))$tip.label
+      y_names <- read.tree(text = paste(forests[max_pair[2]], ";", sep = ""))$tip.label
       
-      #Subroutine for joining the two forests
+      #join the two clusters
       new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
       forests <- forests[-max_pair]
       forests <- c(forests, new_branch)
-      new_tip <- paste("(", tips[max_pair[1]], ":", max_dist/2, ",", tips[max_pair[2]], ":", max_dist/2, ")", sep = "")
+      branch1 <- 0.5*(dist_matrix[max_pair[1], max_pair[2]] + u[max_pair[1]] - u[max_pair[2]])
+      branch2 <- 0.5*(dist_matrix[max_pair[1], max_pair[2]] - u[max_pair[1]] + u[max_pair[2]])
+      new_tip <- paste("(", tips[max_pair[1]], ":", branch1, ",", tips[max_pair[2]], ":", branch2, ")", sep = "")
       #print(new_tip)
       tips <- tips[-max_pair]
       tips <- c(tips, new_tip)
+      
+      # now update the distance matrix 
+        
+      # delete the combined entries and add a new row and colomn
+      dist_matrix <- dist_matrix[-max_pair, -max_pair]
+      dist_matrix <- rbind(dist_matrix, integer(l-2))
+      dist_matrix <- cbind(dist_matrix, integer(l-1))
+        
+      # we only need to fill the last column
+      for(j in 1:(l-2)) {
+        # x_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        # y_names <- read.tree(text = paste(forests[l], ";", sep = ""))$tip.label
+        # dist <- alg_info(sequence, x_names, y_names)
+        # cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
+        # dist_matrix[j,l] <- dist
+        z_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        
+        # This is the information theoretic step 
+        d_xz <- alg_info(sequence, x_names, z_names)
+        d_yz <- alg_info(sequence, y_names, z_names)
+        d_xy <- alg_info(sequence, x_names, y_names)
+        dist <- 0.5*(d_xz + d_yz - d_xy)
+        dist_matrix[j,l-1] <- dist
+        cat("Distance between the pair updated: ", x_names, y_names, "/", z_names, "; d =", dist,"\n")
+      }
+
     }
     
-    x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
-    y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-    branch <- alg_info(sequence, x_names, y_names)
-    tree_string <- paste("(", tips[1], ":", branch/2, ",", tips[2], ":", branch/2, ")", sep = "")
+    tree_string <- paste("(", tips[1], ":", 0.5*(dist_matrix[1,2]), ",", tips[2], ":", 0.5*(dist_matrix[1,2]), ")", sep = "")
   }
   #print(tree_string)
   return(tree_string)
@@ -114,181 +333,60 @@ agg_clustering <- function(sequence) {
 
 Now let’s see how it performs on the Co3 dataset from Cummings et al:
 
-``` r
-sequence <- ReadCharacters("coiii.nex")
-rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
-```
+![](agg_clustering_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
-``` r
-plot(read.tree(text = paste(agg_clustering(sequence), ";", sep="")))
-```
+Press et al:
 
-    ## Current pair:  Bovine / Carp ; IG = 386 
-    ## Current pair:  Bovine / Chicken ; IG = 444 
-    ## Current pair:  Bovine / Human ; IG = 330 
-    ## Current pair:  Bovine / Loach ; IG = 424 
-    ## Current pair:  Bovine / Mouse ; IG = 368 
-    ## Current pair:  Bovine / Rat ; IG = 342 
-    ## Current pair:  Bovine / Seal ; IG = 312 
-    ## Current pair:  Bovine / Whale ; IG = 306 
-    ## Current pair:  Bovine / Xenopus ; IG = 426 
-    ## Current pair:  Carp / Chicken ; IG = 374 
-    ## Current pair:  Carp / Human ; IG = 378 
-    ## Current pair:  Carp / Loach ; IG = 272 
-    ## Current pair:  Carp / Mouse ; IG = 348 
-    ## Current pair:  Carp / Rat ; IG = 384 
-    ## Current pair:  Carp / Seal ; IG = 386 
-    ## Current pair:  Carp / Whale ; IG = 410 
-    ## Current pair:  Carp / Xenopus ; IG = 320 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Loach ; IG = 382 
-    ## Current pair:  Chicken / Mouse ; IG = 438 
-    ## Current pair:  Chicken / Rat ; IG = 418 
-    ## Current pair:  Chicken / Seal ; IG = 438 
-    ## Current pair:  Chicken / Whale ; IG = 418 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Human / Loach ; IG = 434 
-    ## Current pair:  Human / Mouse ; IG = 376 
-    ## Current pair:  Human / Rat ; IG = 340 
-    ## Current pair:  Human / Seal ; IG = 342 
-    ## Current pair:  Human / Whale ; IG = 348 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Loach / Mouse ; IG = 414 
-    ## Current pair:  Loach / Rat ; IG = 424 
-    ## Current pair:  Loach / Seal ; IG = 438 
-    ## Current pair:  Loach / Whale ; IG = 424 
-    ## Current pair:  Loach / Xenopus ; IG = 334 
-    ## Current pair:  Mouse / Rat ; IG = 278 
-    ## Current pair:  Mouse / Seal ; IG = 320 
-    ## Current pair:  Mouse / Whale ; IG = 394 
-    ## Current pair:  Mouse / Xenopus ; IG = 394 
-    ## Current pair:  Rat / Seal ; IG = 312 
-    ## Current pair:  Rat / Whale ; IG = 356 
-    ## Current pair:  Rat / Xenopus ; IG = 390 
-    ## Current pair:  Seal / Whale ; IG = 302 
-    ## Current pair:  Seal / Xenopus ; IG = 416 
-    ## Current pair:  Whale / Xenopus ; IG = 420 
-    ## Current pair:  Bovine / Chicken ; IG = 444 
-    ## Current pair:  Bovine / Human ; IG = 330 
-    ## Current pair:  Bovine / Mouse ; IG = 368 
-    ## Current pair:  Bovine / Rat ; IG = 342 
-    ## Current pair:  Bovine / Seal ; IG = 312 
-    ## Current pair:  Bovine / Whale ; IG = 306 
-    ## Current pair:  Bovine / Xenopus ; IG = 426 
-    ## Current pair:  Bovine / Carp Loach ; IG = 373.6642 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Mouse ; IG = 438 
-    ## Current pair:  Chicken / Rat ; IG = 418 
-    ## Current pair:  Chicken / Seal ; IG = 438 
-    ## Current pair:  Chicken / Whale ; IG = 418 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach ; IG = 348.4552 
-    ## Current pair:  Human / Mouse ; IG = 376 
-    ## Current pair:  Human / Rat ; IG = 340 
-    ## Current pair:  Human / Seal ; IG = 342 
-    ## Current pair:  Human / Whale ; IG = 348 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach ; IG = 374.9975 
-    ## Current pair:  Mouse / Rat ; IG = 278 
-    ## Current pair:  Mouse / Seal ; IG = 320 
-    ## Current pair:  Mouse / Whale ; IG = 394 
-    ## Current pair:  Mouse / Xenopus ; IG = 394 
-    ## Current pair:  Mouse / Carp Loach ; IG = 352.4552 
-    ## Current pair:  Rat / Seal ; IG = 312 
-    ## Current pair:  Rat / Whale ; IG = 356 
-    ## Current pair:  Rat / Xenopus ; IG = 390 
-    ## Current pair:  Rat / Carp Loach ; IG = 375.6512 
-    ## Current pair:  Seal / Whale ; IG = 302 
-    ## Current pair:  Seal / Xenopus ; IG = 416 
-    ## Current pair:  Seal / Carp Loach ; IG = 382.1675 
-    ## Current pair:  Whale / Xenopus ; IG = 420 
-    ## Current pair:  Whale / Carp Loach ; IG = 386.3439 
-    ## Current pair:  Xenopus / Carp Loach ; IG = 302.0371 
-    ## Current pair:  Bovine / Chicken ; IG = 444 
-    ## Current pair:  Bovine / Human ; IG = 330 
-    ## Current pair:  Bovine / Seal ; IG = 312 
-    ## Current pair:  Bovine / Whale ; IG = 306 
-    ## Current pair:  Bovine / Xenopus ; IG = 426 
-    ## Current pair:  Bovine / Carp Loach ; IG = 373.6642 
-    ## Current pair:  Bovine / Mouse Rat ; IG = 326.2592 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Seal ; IG = 438 
-    ## Current pair:  Chicken / Whale ; IG = 418 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach ; IG = 348.4552 
-    ## Current pair:  Chicken / Mouse Rat ; IG = 397.8602 
-    ## Current pair:  Human / Seal ; IG = 342 
-    ## Current pair:  Human / Whale ; IG = 348 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach ; IG = 374.9975 
-    ## Current pair:  Human / Mouse Rat ; IG = 328.599 
-    ## Current pair:  Seal / Whale ; IG = 302 
-    ## Current pair:  Seal / Xenopus ; IG = 416 
-    ## Current pair:  Seal / Carp Loach ; IG = 382.1675 
-    ## Current pair:  Seal / Mouse Rat ; IG = 290.0306 
-    ## Current pair:  Whale / Xenopus ; IG = 420 
-    ## Current pair:  Whale / Carp Loach ; IG = 386.3439 
-    ## Current pair:  Whale / Mouse Rat ; IG = 347.9454 
-    ## Current pair:  Xenopus / Carp Loach ; IG = 302.0371 
-    ## Current pair:  Xenopus / Mouse Rat ; IG = 363.9715 
-    ## Current pair:  Carp Loach / Mouse Rat ; IG = 306.1037 
-    ## Current pair:  Bovine / Chicken ; IG = 444 
-    ## Current pair:  Bovine / Human ; IG = 330 
-    ## Current pair:  Bovine / Whale ; IG = 306 
-    ## Current pair:  Bovine / Xenopus ; IG = 426 
-    ## Current pair:  Bovine / Carp Loach ; IG = 373.6642 
-    ## Current pair:  Bovine / Seal Mouse Rat ; IG = 313.5689 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Whale ; IG = 418 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach ; IG = 348.4552 
-    ## Current pair:  Chicken / Seal Mouse Rat ; IG = 390.9614 
-    ## Current pair:  Human / Whale ; IG = 348 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach ; IG = 374.9975 
-    ## Current pair:  Human / Seal Mouse Rat ; IG = 325.623 
-    ## Current pair:  Whale / Xenopus ; IG = 420 
-    ## Current pair:  Whale / Carp Loach ; IG = 386.3439 
-    ## Current pair:  Whale / Seal Mouse Rat ; IG = 321.7208 
-    ## Current pair:  Xenopus / Carp Loach ; IG = 302.0371 
-    ## Current pair:  Xenopus / Seal Mouse Rat ; IG = 367.0741 
-    ## Current pair:  Carp Loach / Seal Mouse Rat ; IG = 289.9212 
-    ## Current pair:  Bovine / Chicken ; IG = 444 
-    ## Current pair:  Bovine / Human ; IG = 330 
-    ## Current pair:  Bovine / Whale ; IG = 306 
-    ## Current pair:  Bovine / Xenopus ; IG = 426 
-    ## Current pair:  Bovine / Carp Loach Seal Mouse Rat ; IG = 362.819 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Whale ; IG = 418 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach Seal Mouse Rat ; IG = 388.0213 
-    ## Current pair:  Human / Whale ; IG = 348 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach Seal Mouse Rat ; IG = 369.3448 
-    ## Current pair:  Whale / Xenopus ; IG = 420 
-    ## Current pair:  Whale / Carp Loach Seal Mouse Rat ; IG = 371.458 
-    ## Current pair:  Xenopus / Carp Loach Seal Mouse Rat ; IG = 367.6684 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach Seal Mouse Rat ; IG = 388.0213 
-    ## Current pair:  Chicken / Bovine Whale ; IG = 399.0562 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach Seal Mouse Rat ; IG = 369.3448 
-    ## Current pair:  Human / Bovine Whale ; IG = 316.2331 
-    ## Current pair:  Xenopus / Carp Loach Seal Mouse Rat ; IG = 367.6684 
-    ## Current pair:  Xenopus / Bovine Whale ; IG = 392.5399 
-    ## Current pair:  Carp Loach Seal Mouse Rat / Bovine Whale ; IG = 241.6925 
-    ## Current pair:  Chicken / Human ; IG = 446 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Carp Loach Seal Mouse Rat Bovine Whale ; IG = 404.5594 
-    ## Current pair:  Human / Xenopus ; IG = 414 
-    ## Current pair:  Human / Carp Loach Seal Mouse Rat Bovine Whale ; IG = 382.6071 
-    ## Current pair:  Xenopus / Carp Loach Seal Mouse Rat Bovine Whale ; IG = 391.1861 
-    ## Current pair:  Chicken / Xenopus ; IG = 398 
-    ## Current pair:  Chicken / Human Carp Loach Seal Mouse Rat Bovine Whale ; IG = 411.9858 
-    ## Current pair:  Xenopus / Human Carp Loach Seal Mouse Rat Bovine Whale ; IG = 399.762
+    ## Current pair:  1 / 2 ; IG = 8 
+    ## Current pair:  1 / 3 ; IG = 8 
+    ## Current pair:  1 / 4 ; IG = 8 
+    ## Current pair:  1 / 5 ; IG = 14 
+    ## Current pair:  1 / 6 ; IG = 14 
+    ## Current pair:  1 / 7 ; IG = 16 
+    ## Current pair:  1 / 8 ; IG = 12 
+    ## Current pair:  2 / 3 ; IG = 12 
+    ## Current pair:  2 / 4 ; IG = 10 
+    ## Current pair:  2 / 5 ; IG = 14 
+    ## Current pair:  2 / 6 ; IG = 16 
+    ## Current pair:  2 / 7 ; IG = 18 
+    ## Current pair:  2 / 8 ; IG = 14 
+    ## Current pair:  3 / 4 ; IG = 8 
+    ## Current pair:  3 / 5 ; IG = 10 
+    ## Current pair:  3 / 6 ; IG = 14 
+    ## Current pair:  3 / 7 ; IG = 14 
+    ## Current pair:  3 / 8 ; IG = 14 
+    ## Current pair:  4 / 5 ; IG = 18 
+    ## Current pair:  4 / 6 ; IG = 14 
+    ## Current pair:  4 / 7 ; IG = 14 
+    ## Current pair:  4 / 8 ; IG = 14 
+    ## Current pair:  5 / 6 ; IG = 8 
+    ## Current pair:  5 / 7 ; IG = 14 
+    ## Current pair:  5 / 8 ; IG = 14 
+    ## Current pair:  6 / 7 ; IG = 14 
+    ## Current pair:  6 / 8 ; IG = 14 
+    ## Current pair:  7 / 8 ; IG = 8 
+    ## Current pair:  3 / 1 2 ; IG = 9.686217 
+    ## Current pair:  4 / 1 2 ; IG = 9.182958 
+    ## Current pair:  5 / 1 2 ; IG = 12.52933 
+    ## Current pair:  6 / 1 2 ; IG = 13.86266 
+    ## Current pair:  7 / 1 2 ; IG = 16.52933 
+    ## Current pair:  8 / 1 2 ; IG = 12.02607 
+    ## Current pair:  5 / 3 4 ; IG = 12.52933 
+    ## Current pair:  6 / 3 4 ; IG = 12.52933 
+    ## Current pair:  7 / 3 4 ; IG = 12.52933 
+    ## Current pair:  8 / 3 4 ; IG = 12.52933 
+    ## Current pair:  1 2 / 3 4 ; IG = 7.490225 
+    ## Current pair:  5 / 1 2 3 4 ; IG = 12.18758 
+    ## Current pair:  6 / 1 2 3 4 ; IG = 12.98758 
+    ## Current pair:  7 / 1 2 3 4 ; IG = 13.9334 
+    ## Current pair:  8 / 1 2 3 4 ; IG = 11.99149 
+    ## Current pair:  7 / 5 6 ; IG = 13.3594 
+    ## Current pair:  8 / 5 6 ; IG = 12.52933 
+    ## Current pair:  1 2 3 4 / 5 6 ; IG = 10.6627 
+    ## Current pair:  1 2 3 4 / 7 8 ; IG = 11.30469 
+    ## Current pair:  5 6 / 7 8 ; IG = 11.86767
 
-![](agg_clustering_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](agg_clustering_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 # Other agglomerative methods
 
@@ -296,25 +394,8 @@ We’ll use the ones shown in APER
 
 1.  UPGMA
 
-<!-- end list -->
-
-``` r
-trials <- as.DNAbin.character(sequence, all = TRUE)
-M <- dist.dna(trials)
-```
-
-``` r
-plot(upgma(M)); axisPhylo()
-```
-
-![](agg_clustering_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](agg_clustering_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 2.  Neighbour joining
 
-<!-- end list -->
-
-``` r
-plot(nj(M)); axisPhylo()
-```
-
-![](agg_clustering_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](agg_clustering_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->

@@ -39,12 +39,12 @@ Let's write the variation of information as $VI(X,Y) = 2H(X,Y) - H(X) + H(Y)$. W
 2. Parse through `forests` and find the two closest clusters 
 3. Update `forest` by merging the two clusters via tree joining `t1 + t2`. 
 
-Moreover, when two forests $X$ and $Y$ are joined into $(X,Y)$ the branch length from the node to each tip $X$ and $Y$ is taken to be $1/2 VI(X,Y)$. We write it up as follows: 
+Moreover, when two forests $X$ and $Y$ are joined into $(X,Y)$ the branch length from the node to each tip $X$ and $Y$ is taken to be $1/2 VI(X,Y)$.  
 
-```{r,include = FALSE, eval = FALSE}
+```{r, echo=TRUE, eval = FALSE}
 site_info <- function(seq, name1, name2) {
-  #w_x <- length(seqx) / (length(seqx) + length(seqy))
-  #w_y <- length(seqy) / (length(seqx) + length(seqy))
+  #Computes variation of information VI(name1, name2) at a given site 
+  
   seqx <- seq[name1]
   seqy <- seq[name2]
 
@@ -81,63 +81,13 @@ site_info <- function(seq, name1, name2) {
 
 ```
 
-```{r,include=FALSE, eval = FALSE}
+```{r, eval = FALSE, echo = TRUE}
 alg_info <- function(seq_matrix, x_names, y_names) {
   I_alg <- sum(apply(seq_matrix, 2, site_info, name1 = x_names, name2 = y_names))
-  
-  # n <- dim(seqx)[2] # stores number of sites
-  # 
-  # w_x <- nrow(seqx) / (nrow(seqx) + nrow(seqy))
-  # w_y <- nrow(seqy) / (nrow(seqx) + nrow(seqy))
-  # 
-  # I_alg <- 0
-  # 
-  # for (j in 1:n) {
-  #   # compute the algorithmic mutual information between two sequences at one site
-  #   
-  #   pxy_all <- base.freq(as.DNAbin(c(seqx[, j], seqy[, j])), all = TRUE)
-  #   p_xy <- pxy_all[c("a", "c", "g", "t", "-")]
-  #   
-  #   px_all <- base.freq(as.DNAbin(seqx[, j]), all = TRUE)
-  #   p_x <- px_all[c("a", "c", "g", "t", "-")]
-  #   
-  #   # Computing p(y)
-  #   py_all <- base.freq(as.DNAbin(seqy[, j]), all = TRUE)
-  #   p_y <- py_all[c("a", "c", "g", "t", "-")]
-  #   
-  #   entr_xy <- 0
-  #   
-  #   entr_x <- 0
-  #   
-  #   entr_y <- 0
-  #   
-  #   I_alg_site <- 0
-  #   for (i in c(1:5)) {
-  #     if (p_xy[i] != 0) {
-  #       entr_xy <- entr_xy - p_xy[i] * log2(p_xy[i])
-  #     }
-  #     
-  #     if (p_x[i] != 0) {
-  #       entr_x <- entr_x - p_x[i] * log2(p_x[i])
-  #     }
-  #     
-  #     if (p_y[i] != 0) {
-  #       entr_y <- entr_y - p_y[i] * log2(p_y[i])
-  #     }
-  #     
-  #     
-  #   }
-  #   
-  #   I_alg_site <- 2 * entr_xy - entr_x - entr_y
-  #   I_alg <- I_alg + I_alg_site
-  # }
-  # 
-  # 
   return(I_alg)
 }
 
 ```
-
 
 ```{r, echo = TRUE, eval=FALSE}
 agg_clustering <- function(sequence) {
@@ -240,11 +190,11 @@ agg_clustering <- function(sequence) {
 }
 ```
 
+## Neighbor-joining style agglomerative algorithm 
 
-Neighbor-joining style of agglomerative algorithm: 
+Neighbour-joining (NJ) is an agglomerative algorithm that returns an unrooted tree given all pairwise distances between tips. In fact, if the distance is ultrametric then NJ gives the exact tree. Here we design the following information-theoretic variant of NJ. In particular, the initial distances are assigned to be $VI(x,y)$ where $x$ and $y$ are single-OTU clusters. Moreover, in the step where we recalculate distances between the new cluster and the existing ones, we use the variation of information instead of the old distances. 
 
-Outline of algorithm:
-
+```
 if (1 sequence){
   return that sequence
 } else if (2 sequence){
@@ -264,9 +214,11 @@ if (1 sequence){
   }
     
   finally, we have two clusters left, join them together with branch length each half of their distance to     }
-  
+```
 
-```{r}
+We write it up in R as follows: 
+
+```{r, echo = TRUE, eval=FALSE}
 nj_agg <- function(sequence) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
@@ -291,12 +243,6 @@ nj_agg <- function(sequence) {
     end <- length(forests) - 2
     dist_matrix <- matrix(0, end+2, end+2)
 
-    # x_names <- read.tree(text = paste(forests[1], ";", sep = ""))$tip.label
-    # y_names <- read.tree(text = paste(forests[2], ";", sep = ""))$tip.label
-    #print(x_names)
-    #print(y_names)
-    # max_dist <- alg_info(sequence, x_names, y_names)
-    
     #Subroutine for computing the closest two clusters
 
     #fill in the distance matrix
@@ -312,65 +258,10 @@ nj_agg <- function(sequence) {
       }
     }
     
-    View(dist_matrix)
-    
-    #fill in the u vector
-    # for(k in 1:(length(forests))){
-    #   sum <- 0
-    #   for(j in 1:(length(forests))){
-    #     if(k < j){
-    #       sum <- sum + dist_matrix[k,j]
-    #     }
-    #     if(k > j){
-    #       sum <- sum + dist_matrix[j,k]
-    #     }
-    #   }
-    #   u[k] <- sum/(length(forests) - 2)
-    #   print(u[k])
-    # }
-    
-    # max_dist <- dist_matrix[1,2] - u[1] - u[2]
-    # max_pair <- c(1,2)
-    
-    #find the minimum of the expression dij - ui - uj
-    # for (k in 1:(length(forests) - 1)) {
-    #   for (j in (k + 1):length(forests)) {
-    #     val <- dist_matrix[k,j] - u[k] - u[j]
-    #     cat("Current value is: ", val, "\n")
-    #     if(val < max_dist){
-    #       max_dist <- val
-    #       max_pair <- c(k,j)
-    #     }
-    #   }
-    # }
-
-    #Subroutine for joining the two forests
-    # new_branch <- paste("(", forests[max_pair[1]], ",", forests[max_pair[2]], ")", sep = "")
-    # forests <- forests[-max_pair]
-    # forests <- c(forests, new_branch)
-    # branch1 <- 0.5*(dist_matrix[max_pair[1], max_pair[2]] + u[max_pair[1]] - u[max_pair[2]])
-    # branch2 <- 0.5*(dist_matrix[max_pair[1], max_pair[2]] - u[max_pair[1]] + u[max_pair[2]])
-    # new_tip <- paste("(", tips[max_pair[1]], ":", branch1, ",", tips[max_pair[2]], ":", branch2, ")", sep = "")
-    # #print(new_tip)
-    # tips <- tips[-max_pair]
-    # tips <- c(tips, new_tip)
-    # dist_matrix <- dist_matrix[-max_pair, -max_pair]
-    # dist_matrix <- rbind(dist_matrix, integer(end+1))
-    # dist_matrix <- cbind(dist_matrix, integer(end+2))
-    
     #Now repeat the process for n-2 times 
     for(i in c(1:end)){
       l <- length(forests)
       u <- integer(l)
-      
-      #first update the distance matrix
-      # for(j in 1:(l-1)) {
-      #   x_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
-      #   y_names <- read.tree(text = paste(forests[l], ";", sep = ""))$tip.label
-      #   dist <- alg_info(sequence, x_names, y_names)
-      #   cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
-      #   dist_matrix[j,l] <- dist
-      # }
       
       #calculate the u vector
       for(k in 1:l){
@@ -433,6 +324,8 @@ nj_agg <- function(sequence) {
         # cat("Current pair: ", x_names, "/", y_names, "; IG =", dist,"\n")
         # dist_matrix[j,l] <- dist
         z_names <- read.tree(text = paste(forests[j], ";", sep = ""))$tip.label
+        
+        # This is the information theoretic step 
         d_xz <- alg_info(sequence, x_names, z_names)
         d_yz <- alg_info(sequence, y_names, z_names)
         d_xy <- alg_info(sequence, x_names, y_names)
@@ -451,7 +344,7 @@ nj_agg <- function(sequence) {
 ```
 
 
-```{r}
+```{r, include = FALSE, eval=FALSE}
 nj_agg_2 <- function(sequence) {
   #inputs:
   # sequence -- aligned dna sequence in phyDat
@@ -630,35 +523,35 @@ nj_agg_2 <- function(sequence) {
   return(tree_string)
 }
 ```
+
 Now let's see how it performs on the Co3 dataset from Cummings et al: 
 
-```{r, echo=TRUE}
-sequence <- ReadCharacters("coiii.nex")
-rownames(sequence) <- names(as.DNAbin(read.nexus.data("coiii.nex")))
-
+```{r, include=FALSE}
+coiii_data <- ReadCharacters("./data/coiii.nex")
+coiii_tree_agg <- read.tree(text = paste(agg_clustering(coiii_data), ";", sep=""))
+coiii_tree_agg_nj <- read.tree(text = paste(nj_agg(coiii_data), ";", sep=""))
 ```
 
-
-```{r}
-coiii_data <- ReadCharacters("coiii.nex")
-coiii_tree_agg <- read.tree(text = paste(agg_clustering(coiii_data), ";", sep=""))
+```{r echo=FALSE}
+layout(matrix(c(1,2), nrow = 1, ncol = 2))
 plot(coiii_tree_agg)
+title("Agglomerative Tree for \nCo3 data")
+plot(coiii_tree_agg_nj)
+title("Neighbour Joined Agglomerative tree \nfor Co3 data")
 ```
 
 Press et al: 
 
-```{r}
-press_data <- as.character.DNAbin(read.dna("press_codes.phy"))
+```{r, include=FALSE}
+press_data <- as.character.DNAbin(read.dna("./data/press_codes.phy"))
 press_half <- press_data[1:8,]
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 press_tree_agg <- read.tree(text = paste(agg_clustering(press_half, asym = TRUE), ";", sep=""))
 plot(press_tree_agg)
 ```
-
-## Weighted algorithm
 
 # Other agglomerative methods 
 
@@ -666,18 +559,20 @@ We'll use the ones shown in APER
 
 1. UPGMA
 
-```{r}
-trials <- as.DNAbin.character(sequence, all = TRUE)
-M <- dist.dna(trials)
+```{r, include=FALSE}
+trials <- as.DNAbin(coiii_data, all = TRUE)
+M <- dist.dna(trials, model = "raw")
 ```
 
-```{r}
+```{r, echo=FALSE}
 plot(upgma(M)); axisPhylo()
+title("UPGMA tree on Co3 dataset with raw model")
 ```
 
 2. Neighbour joining 
 
-```{r}
+```{r, echo=FALSE}
 plot(nj(M)); axisPhylo()
+title("NJ tree on Co3 dataset with raw model")
 ```
 
