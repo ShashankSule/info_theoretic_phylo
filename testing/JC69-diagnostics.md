@@ -1,5 +1,4 @@
-A comparative test of some information theoretic algorithms for
-phylogenetic reconstruction
+125 Samples of JC69 with 12 species of site length 2000
 ================
 
 # Robinson Foulds distances
