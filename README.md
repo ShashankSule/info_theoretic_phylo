@@ -12,3 +12,8 @@ This is a working directory for the Summer 2021 information theoretic phylogenet
 
 * Go [here](https://github.com/ShashankSule/info_theoretic_phylo/blob/main/Computing_docs.md) to find out more about the computational aspects of using our algorithm on randomly generated sequence alignment data. 
 
+## Example
+
+Check out a tree our algorithm made using atpase-6 data from Cummings et. al 1995: 
+
+![](Cummings-et-al-1995-data_files/figure-gfm/unnamed-chunk-3-2.png)
