@@ -16,4 +16,4 @@ This is a working directory for the Summer 2021 information theoretic phylogenet
 
 Check out a tree our algorithm made using atpase-6 data from Cummings et. al 1995: 
 
-[](Cummings-et-al-1995-data_files/figure-gfm/unnamed-chunk-3-2.png)
+![](testing/Cummings-et-al-1995-data_files/figure-gfm/unnamed-chunk-3-2.png)
